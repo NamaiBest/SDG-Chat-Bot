@@ -1,0 +1,9 @@
+# Config folder - ignore future changes
+config/
+
+# Memory/session files
+memory/
+
+# Python cache
+__pycache__/
+*.pyc
