@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDG Teacher Chatbot</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Welcome Screen -->
+        <div id="welcome-screen">
+            <h1>🌱 Welcome to SDG Teacher Chatbot</h1>
+            <p>Your personal guide to ethics, sustainability, and UN SDG goals!</p>
+            <div class="name-input-section">
+                <label for="username">What's your name?</label>
+                <input type="text" id="username" placeholder="Enter your name..." required>
+                <button id="start-chat">Start Learning</button>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div id="chat-interface" style="display: none;">
+            <div class="chat-header">
+                <h2>🌱 SDG Teacher</h2>
+                <p>Hello <span id="user-display-name"></span>! Ask me about ethics, sustainability, or SDG goals.</p>
+            </div>
+            <div id="chat-window"></div>
+            <form id="chat-form">
+                <div class="input-group">
+                    <input type="text" id="user-input" placeholder="Type your question here..." autocomplete="off" required>
+                    <button type="submit">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>
