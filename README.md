@@ -4,12 +4,15 @@ An educational chatbot powered by Google's Gemini AI, focused on ethics, sustain
 
 ## ✨ Features
 
-- **🎯 Educational Focus**: All responses revolve around ethics, sustainability, and SDG goals
-- **💬 Conversation Memory**: Automatically saves and loads chat history for each user session. All conversations are stored in a dedicated `memory/` folder, which acts as a simple database. This allows the chatbot to remember details, preferences, and facts from previous interactions, even if the site is refreshed or revisited later.
-- **👤 Personalized Experience**: Asks for user's name and provides personalized responses
-- **🎨 Professional UI**: Modern, responsive design with smooth animations
-- **📱 Mobile Friendly**: Works seamlessly on desktop and mobile devices
-- **🔄 Context Awareness**: Gemini AI uses previous conversation context for better responses
+- 🎯 Educational focus: Responses naturally center on ethics, sustainability, and SDGs
+- 💬 Conversation memory: Saves chats per session in `memory/` (lightweight JSON “DB”) and restores on return
+- 🧠 Context window: Last 10 exchanges are summarized into the prompt for better recall
+- 👤 Personalized experience: Asks your name and tailors responses
+- 🎨 Modern UI: Smooth animations and typing indicator
+- 📝 Markdown rendering: Bot messages support basic markdown (**bold**, *italic*, new lines)
+- 📷 Webcam & images: Capture an image and ask questions about it (multimodal Gemini request)
+- 📱 Mobile friendly: Works on phones and desktop; chat window scrolls smoothly
+- 🧰 Utility endpoints: `/models` to list available models, `/conversation/{session_id}` to fetch history
 
 ## 🚀 Quick Start
 
@@ -29,7 +32,7 @@ An educational chatbot powered by Google's Gemini AI, focused on ethics, sustain
 3. **Create and activate a virtual environment** (recommended):
    ```bash
    python -m venv .venv
-   source .venv/bin/activate  # On macOS/Linux
+  # On macOS/Linux
    # or
    .venv\Scripts\activate     # On Windows
    ```

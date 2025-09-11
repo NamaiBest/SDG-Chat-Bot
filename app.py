@@ -5,6 +5,7 @@ import requests
 import uvicorn
 import os
 import json
+import base64
 from datetime import datetime
 import uuid
 from config.gemini_key import GEMINI_API_KEY
@@ -20,7 +21,9 @@ SYSTEM_PROMPT = (
     "Be conversational and remember details from our chat history. "
     "Only mention UN SDG goals when they naturally fit the conversation - don't force them into every response. "
     "If a question is completely off-topic, gently guide toward sustainability themes. "
-    "If someone asks about the creator, Namai is an interdisciplinary dual major student who created this chatbot."
+    "If someone asks about the creator, Namai is an interdisciplinary dual major student who created this chatbot. "
+    "When analyzing images, relate them to sustainability, ethics, or environmental topics when relevant. "
+    "Look for opportunities to discuss sustainable practices, environmental impact, or ethical considerations in what you see."
 )
 
 # Serve static files (for custom CSS/JS)
@@ -31,7 +34,7 @@ MEMORY_DIR = "memory"
 if not os.path.exists(MEMORY_DIR):
     os.makedirs(MEMORY_DIR)
 
-def save_conversation(session_id, username, message, response):
+def save_conversation(session_id, username, message, response, has_image=False):
     """Save conversation to memory"""
     try:
         file_path = os.path.join(MEMORY_DIR, f"{session_id}.json")
@@ -49,7 +52,8 @@ def save_conversation(session_id, username, message, response):
         conversation_data["messages"].append({
             "timestamp": datetime.now().isoformat(),
             "user_message": message,
-            "bot_response": response
+            "bot_response": response,
+            "has_image": has_image
         })
         
         # Save updated conversation
@@ -89,7 +93,8 @@ def get_conversation_context(session_id):
     recent_messages = conversation["messages"][-10:]
     context = "Here's our conversation history so you can remember important details:\n\n"
     for msg in recent_messages:
-        context += f"User: {msg['user_message']}\nYou responded: {msg['bot_response']}\n\n"
+        image_note = " (with image)" if msg.get("has_image") else ""
+        context += f"User: {msg['user_message']}{image_note}\nYou responded: {msg['bot_response']}\n\n"
     
     context += "Remember any personal details, preferences, or facts mentioned by the user in this conversation.\n"
     
@@ -120,24 +125,41 @@ async def chat(request: Request):
     user_input = data.get("message", "")
     username = data.get("username", "User")
     session_id = data.get("session_id", str(uuid.uuid4()))
+    image_data = data.get("image", None)
     
-    print(f"🔄 Processing chat - Session: {session_id}, User: {username}")
+    print(f"🔄 Processing chat - Session: {session_id}, User: {username}, Has Image: {bool(image_data)}")
     
     # Get conversation context for better responses
     context = get_conversation_context(session_id)
     
-    # Updated payload format for Gemini API with context
+    # Create prompt with context
     if context:
         prompt = f"{SYSTEM_PROMPT}\n\n{context}\n\nCurrent user ({username}): {user_input}\n\nRemember to reference any relevant details from our conversation history when appropriate."
     else:
         prompt = f"{SYSTEM_PROMPT}\n\nUser ({username}): {user_input}"
     
+    # Prepare payload for Gemini API
+    parts = [{"text": prompt}]
+    
+    # Add image if provided
+    if image_data:
+        try:
+            # Extract base64 data (remove data:image/jpeg;base64, prefix)
+            base64_data = image_data.split(',')[1]
+            parts.append({
+                "inline_data": {
+                    "mime_type": "image/jpeg",
+                    "data": base64_data
+                }
+            })
+            print("✅ Image added to request")
+        except Exception as e:
+            print(f"❌ Error processing image: {e}")
+    
     payload = {
         "contents": [
             {
-                "parts": [
-                    {"text": prompt}
-                ]
+                "parts": parts
             }
         ]
     }
@@ -158,7 +180,7 @@ async def chat(request: Request):
         bot_reply = f"Exception: {str(e)}"
     
     # Save conversation to memory
-    save_success = save_conversation(session_id, username, user_input, bot_reply)
+    save_success = save_conversation(session_id, username, user_input, bot_reply, bool(image_data))
     if not save_success:
         print("⚠️ Failed to save conversation to memory")
     

@@ -1,40 +1,46 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* Page layout: allow normal scrolling */
+html, body { height: auto; overflow-y: auto; }
 body { 
     background: linear-gradient(135deg, #f4f8f6 0%, #e8f5e8 100%); 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    min-height: 100vh; /* full viewport but scrollable */
+    overflow-y: auto; /* re-enable page scroll */
+    -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
 }
 
+/* Container uses natural height and centers via margin */
 .container { 
     max-width: 800px; 
     width: 90%; 
+    /* height removed to allow page growth */
     background: #fff; 
     border-radius: 20px; 
     box-shadow: 0 10px 40px rgba(0,0,0,0.1); 
-    overflow: hidden;
+    /* overflow removed to avoid clipping and allow natural page scroll */
+    display: flex;
+    flex-direction: column;
+    margin: 24px auto; /* center horizontally with top/bottom spacing */
 }
 
 /* Welcome Screen Styles */
 #welcome-screen {
-    padding: 60px 40px;
+    padding: 40px 24px; /* slightly tighter to save space */
     text-align: center;
     background: linear-gradient(135deg, #00695c 0%, #00897b 100%);
     color: white;
 }
 
 #welcome-screen h1 { 
-    font-size: 2.5em; 
-    margin-bottom: 20px; 
+    font-size: 2.1em; 
+    margin-bottom: 16px; 
     font-weight: 300;
 }
 
 #welcome-screen p { 
-    font-size: 1.2em; 
-    margin-bottom: 40px; 
+    font-size: 1.05em; 
+    margin-bottom: 28px; 
     opacity: 0.9;
 }
 
@@ -83,7 +89,7 @@ body {
 .chat-header {
     background: #00695c;
     color: white;
-    padding: 20px 30px;
+    padding: 12px 20px; /* tighter header */
     text-align: center;
 }
 
@@ -97,14 +103,117 @@ body {
     font-size: 0.95em;
 }
 
+/* Camera Section Styles */
+#camera-section {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 10px 16px; /* compact */
+}
+
+.camera-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.camera-btn {
+    background: #00695c;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.camera-btn:hover {
+    background: #00897b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,105,92,0.3);
+}
+
+#camera-container {
+    text-align: center;
+    margin-bottom: 8px; /* compact */
+}
+
+.camera-preview {
+    position: relative;
+    display: inline-block;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+/* Make video/image compact to avoid page scroll */
+#camera-video,
+#captured-image {
+    max-width: 100%;
+    height: auto;
+    max-height: 160px; /* compact preview */
+    display: block;
+}
+
+.capture-btn {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ff5722;
+    color: white;
+    border: none;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255,87,34,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.capture-btn:hover {
+    background: #e64a19;
+    transform: translateX(-50%) scale(1.1);
+    box-shadow: 0 6px 20px rgba(255,87,34,0.6);
+}
+
+.capture-btn:active {
+    transform: translateX(-50%) scale(0.95);
+}
+
+.image-preview {
+    display: inline-block;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.image-note {
+    font-size: 0.9em;
+    color: #00695c;
+    margin-top: 10px;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* Chat window: restore fixed height; page can scroll normally */
 #chat-window { 
     height: 500px; 
-    padding: 20px; 
+    padding: 16px; 
     background: #fafafa; 
     overflow-y: auto; 
+    -webkit-overflow-scrolling: touch; /* enable momentum scroll on iOS */
+    overscroll-behavior: contain; /* prevent parent from hijacking scroll */
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
 }
 
 .message-container {
@@ -136,9 +245,10 @@ body {
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
+/* Input stays pinned at bottom */
 .input-group { 
     display: flex; 
-    padding: 20px; 
+    padding: 14px 16px; 
     background: white;
     border-top: 1px solid #e0e0e0;
 }
@@ -196,14 +306,9 @@ body {
 @media (max-width: 600px) {
     .container {
         width: 95%;
-        margin: 10px;
+        margin: 16px auto; /* remove fixed viewport height */
     }
-    
-    #welcome-screen {
-        padding: 40px 20px;
-    }
-    
-    .user-msg, .bot-msg {
-        max-width: 85%;
-    }
+    #welcome-screen { padding: 28px 16px; }
+    #camera-video, #captured-image { max-height: 140px; }
+    .user-msg, .bot-msg { max-width: 85%; }
 }

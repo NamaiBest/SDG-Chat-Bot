@@ -7,13 +7,99 @@ const usernameInput = document.getElementById('username');
 const startChatBtn = document.getElementById('start-chat');
 const userDisplayName = document.getElementById('user-display-name');
 
+// Camera elements
+const toggleCameraBtn = document.getElementById('toggle-camera');
+const captureImageBtn = document.getElementById('capture-image');
+const clearImageBtn = document.getElementById('clear-image');
+const cameraVideo = document.getElementById('camera-video');
+const cameraCanvas = document.getElementById('camera-canvas');
+const cameraContainer = document.getElementById('camera-container');
+const capturedImageContainer = document.getElementById('captured-image-container');
+const capturedImage = document.getElementById('captured-image');
+
 let currentUsername = '';
 let sessionId = localStorage.getItem('sdg_session_id') || generateSessionId();
+let cameraStream = null;
+let isCameraOn = false;
+let capturedImageData = null;
 
 function generateSessionId() {
     const id = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     localStorage.setItem('sdg_session_id', id);
     return id;
+}
+
+// Camera Functions
+async function toggleCamera() {
+    if (!isCameraOn) {
+        try {
+            console.log('Requesting camera access...');
+            cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 640 }, 
+                    height: { ideal: 480 },
+                    facingMode: 'user'
+                } 
+            });
+            console.log('Camera access granted');
+            
+            cameraVideo.srcObject = cameraStream;
+            cameraContainer.style.display = 'block';
+            toggleCameraBtn.textContent = '📷 Turn Off Camera';
+            isCameraOn = true;
+            
+            // Hide captured image when turning on camera
+            capturedImageContainer.style.display = 'none';
+            clearImageBtn.style.display = 'none';
+            capturedImageData = null;
+            
+        } catch (error) {
+            console.error('Camera error:', error);
+            alert('Camera access denied or not available. Please check your browser permissions and try again.');
+        }
+    } else {
+        console.log('Turning off camera...');
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            cameraStream = null;
+        }
+        cameraContainer.style.display = 'none';
+        toggleCameraBtn.textContent = '📷 Turn On Camera';
+        isCameraOn = false;
+    }
+}
+
+function captureImage() {
+    console.log('Capturing image...');
+    const canvas = cameraCanvas;
+    const context = canvas.getContext('2d');
+    
+    // Set canvas size to match video
+    canvas.width = cameraVideo.videoWidth;
+    canvas.height = cameraVideo.videoHeight;
+    
+    // Draw the video frame to canvas
+    context.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+    
+    // Convert to base64 JPEG
+    capturedImageData = canvas.toDataURL('image/jpeg', 0.8);
+    capturedImage.src = capturedImageData;
+    
+    // Show captured image and hide camera
+    capturedImageContainer.style.display = 'block';
+    clearImageBtn.style.display = 'inline-block';
+    
+    // Turn off camera after capture
+    toggleCamera();
+    
+    console.log('Image captured successfully');
+}
+
+function clearImage() {
+    console.log('Clearing captured image...');
+    capturedImageData = null;
+    capturedImageContainer.style.display = 'none';
+    clearImageBtn.style.display = 'none';
 }
 
 function convertMarkdownToHtml(text) {
@@ -98,6 +184,9 @@ async function loadConversationHistory() {
 
 // Event Listeners
 startChatBtn.addEventListener('click', startChat);
+toggleCameraBtn.addEventListener('click', toggleCamera);
+captureImageBtn.addEventListener('click', captureImage);
+clearImageBtn.addEventListener('click', clearImage);
 
 usernameInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
@@ -121,14 +210,21 @@ chatForm.addEventListener('submit', async (e) => {
     chatWindow.scrollTop = chatWindow.scrollHeight;
     
     try {
+        const requestData = { 
+            message, 
+            username: currentUsername,
+            session_id: sessionId
+        };
+        
+        // Add image data if available
+        if (capturedImageData) {
+            requestData.image = capturedImageData;
+        }
+        
         const res = await fetch('/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                message, 
-                username: currentUsername,
-                session_id: sessionId
-            })
+            body: JSON.stringify(requestData)
         });
         const data = await res.json();
         

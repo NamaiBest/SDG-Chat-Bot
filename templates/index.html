@@ -25,10 +25,32 @@
                 <h2>🌱 SDG Teacher</h2>
                 <p>Hello <span id="user-display-name"></span>! Ask me about ethics, sustainability, or SDG goals.</p>
             </div>
+            
+            <!-- Camera Section -->
+            <div id="camera-section">
+                <div class="camera-controls">
+                    <button id="toggle-camera" class="camera-btn">📷 Turn On Camera</button>
+                    <button id="clear-image" class="camera-btn" style="display: none;">�️ Clear Image</button>
+                </div>
+                <div id="camera-container" style="display: none;">
+                    <div class="camera-preview">
+                        <video id="camera-video" autoplay playsinline muted></video>
+                        <button id="capture-image" class="capture-btn">📸</button>
+                    </div>
+                    <canvas id="camera-canvas" style="display: none;"></canvas>
+                </div>
+                <div id="captured-image-container" style="display: none;">
+                    <div class="image-preview">
+                        <img id="captured-image" alt="Captured image">
+                        <p class="image-note">✅ Image captured! Ask me questions about what you see.</p>
+                    </div>
+                </div>
+            </div>
+
             <div id="chat-window"></div>
             <form id="chat-form">
                 <div class="input-group">
-                    <input type="text" id="user-input" placeholder="Type your question here..." autocomplete="off" required>
+                    <input type="text" id="user-input" placeholder="Type your question here (with or without image)..." autocomplete="off" required>
                     <button type="submit">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
