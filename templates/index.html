@@ -7,6 +7,13 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <!-- Thin Header Bar -->
+    <div id="top-header">
+        <div class="header-left">🌱 SDG Teacher</div>
+        <div class="header-center"><span id="header-message">Ask me about ethics, sustainability, or SDG goals.</span></div>
+        <div class="header-right"></div>
+    </div>
+
     <div class="container">
         <!-- Welcome Screen -->
         <div id="welcome-screen">
@@ -21,44 +28,78 @@
 
         <!-- Chat Interface -->
         <div id="chat-interface" style="display: none;">
-            <div class="chat-header">
-                <h2>🌱 SDG Teacher</h2>
-                <p>Hello <span id="user-display-name"></span>! Ask me about ethics, sustainability, or SDG goals.</p>
-            </div>
-            
-            <!-- Camera Section -->
-            <div id="camera-section">
-                <div class="camera-controls">
-                    <button id="toggle-camera" class="camera-btn">📷 Turn On Camera</button>
-                    <button id="clear-image" class="camera-btn" style="display: none;">�️ Clear Image</button>
-                </div>
-                <div id="camera-container" style="display: none;">
-                    <div class="camera-preview">
-                        <video id="camera-video" autoplay playsinline muted></video>
-                        <button id="capture-image" class="capture-btn">📸</button>
-                    </div>
-                    <canvas id="camera-canvas" style="display: none;"></canvas>
-                </div>
-                <div id="captured-image-container" style="display: none;">
-                    <div class="image-preview">
-                        <img id="captured-image" alt="Captured image">
-                        <p class="image-note">✅ Image captured! Ask me questions about what you see.</p>
-                    </div>
-                </div>
-            </div>
-
             <div id="chat-window"></div>
-            <form id="chat-form">
-                <div class="input-group">
-                    <input type="text" id="user-input" placeholder="Type your question here (with or without image)..." autocomplete="off" required>
-                    <button type="submit">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                        </svg>
-                    </button>
-                </div>
-            </form>
         </div>
+    </div>
+
+    <!-- Camera Overlay -->
+    <div id="camera-overlay" class="camera-overlay">
+        <div class="camera-modal">
+            <video id="overlay-camera-video" autoplay playsinline muted></video>
+            <div class="camera-controls">
+                <button id="capture-confirm" class="camera-control-btn capture">📸 Capture</button>
+                <button id="camera-cancel" class="camera-control-btn cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Media Preview Corner -->
+    <div id="media-preview-corner" class="media-preview-corner">
+        <button class="remove-btn" id="remove-corner-media">×</button>
+    </div>
+
+    <!-- Input Area (Visible during chat) -->
+    <div id="input-area" style="display: none;">
+        <!-- Media Preview Container -->
+        <div id="media-preview-container" style="display: none;">
+            <div class="media-preview-content">
+                <img id="preview-image" alt="Preview image" style="display: none;">
+                <video id="preview-video" controls style="display: none;"></video>
+                <p id="media-note" class="media-note">✅ Media ready! Ask me questions about what you see.</p>
+            </div>
+        </div>
+        
+        <!-- Camera Container -->
+        <div id="camera-container" style="display: none;">
+            <div class="media-preview">
+                <video id="camera-video" autoplay playsinline muted></video>
+                <div class="capture-controls">
+                    <button id="capture-image" class="capture-btn">📸</button>
+                    <button id="start-recording" class="capture-btn recording-btn" style="display: none;">🔴</button>
+                    <button id="stop-recording" class="capture-btn recording-btn" style="display: none;">⏹️</button>
+                </div>
+            </div>
+            <canvas id="camera-canvas" style="display: none;"></canvas>
+        </div>
+        
+        <!-- Recording Status -->
+        <div id="recording-status" style="display: none;">
+            <div class="recording-indicator">
+                <span class="recording-dot"></span>
+                <span>Recording... <span id="recording-timer">00:00</span></span>
+            </div>
+        </div>
+        
+        <form id="chat-form">
+            <div class="input-group">
+                <div class="media-controls-inline">
+                    <button type="button" id="toggle-camera" class="media-btn-inline">📸</button>
+                    <button type="button" id="record-video" class="media-btn-inline">🎥</button>
+                    <label for="file-upload" class="media-btn-inline file-upload-btn">📁</label>
+                    <input type="file" id="file-upload" accept="image/*,video/*" style="display: none;">
+                    <button type="button" id="clear-media" class="media-btn-inline clear-btn" style="display: none;">🗑️</button>
+                </div>
+                <input type="text" id="user-input" placeholder="Type your question here (with or without media)..." autocomplete="off" required>
+                <button type="button" id="mic-btn" class="mic-btn" title="Record audio message">
+                    🎤
+                </button>
+                <button type="submit" class="send-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </form>
     </div>
     <script src="/static/script.js"></script>
 </body>

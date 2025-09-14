@@ -1,52 +1,241 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* Page layout: allow normal scrolling */
-html, body { height: auto; overflow-y: auto; }
+/* Page layout: prevent external scrolling */
+html, body { 
+    height: 100vh; 
+    overflow: hidden; 
+    margin: 0 !important; 
+    padding: 0 !important; 
+}
+
 body { 
     background: linear-gradient(135deg, #f4f8f6 0%, #e8f5e8 100%); 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    min-height: 100vh; /* full viewport but scrollable */
-    overflow-y: auto; /* re-enable page scroll */
-    -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
-}
-
-/* Container uses natural height and centers via margin */
-.container { 
-    max-width: 800px; 
-    width: 90%; 
-    /* height removed to allow page growth */
-    background: #fff; 
-    border-radius: 20px; 
-    box-shadow: 0 10px 40px rgba(0,0,0,0.1); 
-    /* overflow removed to avoid clipping and allow natural page scroll */
     display: flex;
     flex-direction: column;
-    margin: 24px auto; /* center horizontally with top/bottom spacing */
+    min-height: 100vh;
 }
 
-/* Welcome Screen Styles */
-#welcome-screen {
-    padding: 40px 24px; /* slightly tighter to save space */
-    text-align: center;
-    background: linear-gradient(135deg, #00695c 0%, #00897b 100%);
+.media-btn-inline.clear-btn:hover {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+/* Camera Overlay Styles */
+.camera-overlay {
+    position: fixed;
+    top: 50px; /* Start below the header */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.camera-modal {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    max-width: 90vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.camera-modal video {
+    max-width: 100%;
+    max-height: 60vh;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+.camera-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.camera-control-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.camera-control-btn.capture {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     color: white;
 }
 
+.camera-control-btn.cancel {
+    background: #f5f5f5;
+    color: #666;
+}
+
+.camera-control-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Blur effect for chat when camera is active */
+.chat-blurred .container {
+    filter: blur(5px);
+    pointer-events: none;
+}
+
+.chat-blurred .input-area {
+    filter: blur(5px);
+    pointer-events: none;
+}
+
+/* Ensure header stays unblurred and visible */
+.chat-blurred #top-header {
+    filter: none !important;
+    pointer-events: auto !important;
+    z-index: 10001 !important;
+}
+
+/* Small preview in bottom-left corner */
+.media-preview-corner {
+    position: fixed;
+    bottom: 80px;
+    right: 30px;
+    width: 160px;    /* increase from 80px */
+    height: 110px;    /* increase from 60px */
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 9998;
+    display: none;
+    cursor: pointer;
+}
+
+.media-preview-corner img,
+.media-preview-corner video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.media-preview-corner .remove-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ff4757;
+    color: white;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Top Header Bar */
+#top-header {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: linear-gradient(135deg, #00695c 0%, #00897b 100%) !important;
+    color: white !important;
+    padding: 6px 20px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-weight: 500 !important;
+    z-index: 10001 !important;
+    height: 40px !important;
+}
+
+#top-header .header-left {
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
+#top-header .header-center {
+    flex-grow: 1;
+    text-align: center;
+    margin: 0 20px;
+    font-size: 0.95em;
+}
+
+#top-header .header-right {
+    width: 100px;
+}
+
+.header-left {
+    font-weight: 600;
+    font-size: 1.2em;
+}
+
+.header-center {
+    flex-grow: 1;
+    text-align: center;
+    margin: 0 20px;
+}
+
+.header-right {
+    width: 100px; /* Balance the left side */
+}
+
+/* Container takes full width and height minus header and input */
+/* Container uses natural height and centers via margin */
+.container { 
+    max-width: 98vw; 
+    width: 98%; 
+    background: #fff; 
+    border-radius: 20px; 
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1); 
+    display: flex;
+    flex-direction: column;
+    margin: 45px auto 0 auto; /* removed bottom margin */
+    padding-bottom: 20px;
+    height: calc(100vh - 90px); /* ensure it fits within viewport */
+    overflow: hidden; /* ensure content respects rounded corners */
+}
+
+/* Welcome Screen Styles */
+/* Welcome Screen Styles */
+#welcome-screen {
+    padding: 20px 24px;
+    text-align: center;
+    background: linear-gradient(135deg, #00695c 0%, #00897b 100%);
+    color: white;
+    height: calc(100vh - 140px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+}
+
 #welcome-screen h1 { 
-    font-size: 2.1em; 
-    margin-bottom: 16px; 
+    font-size: 1.9em; 
+    margin-bottom: 12px; 
     font-weight: 300;
 }
 
 #welcome-screen p { 
-    font-size: 1.05em; 
-    margin-bottom: 28px; 
+    font-size: 1em; 
+    margin-bottom: 20px; 
     opacity: 0.9;
 }
 
 .name-input-section {
     background: rgba(255,255,255,0.1);
-    padding: 30px;
+    padding: 20px;
     border-radius: 15px;
     backdrop-filter: blur(10px);
 }
@@ -89,7 +278,7 @@ body {
 .chat-header {
     background: #00695c;
     color: white;
-    padding: 12px 20px; /* tighter header */
+    padding: 15px 20px;
     text-align: center;
 }
 
@@ -103,73 +292,64 @@ body {
     font-size: 0.95em;
 }
 
-/* Camera Section Styles */
-#camera-section {
+/* Media Preview and Camera at Bottom */
+#media-preview-container,
+#camera-container {
     background: #f8f9fa;
-    border-bottom: 1px solid #e0e0e0;
-    padding: 10px 16px; /* compact */
-}
-
-.camera-controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.camera-btn {
-    background: #00695c;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 25px;
-    font-size: 0.95em;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 500;
-}
-
-.camera-btn:hover {
-    background: #00897b;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,105,92,0.3);
+    border-top: 1px solid #e0e0e0;
+    padding: 16px 20px;
 }
 
 #camera-container {
     text-align: center;
-    margin-bottom: 8px; /* compact */
 }
 
-.camera-preview {
+.media-preview {
     position: relative;
     display: inline-block;
     border-radius: 15px;
     overflow: hidden;
     box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    margin-bottom: 10px;
 }
 
-/* Make video/image compact to avoid page scroll */
-#camera-video,
-#captured-image {
-    max-width: 100%;
+/* Media preview sizing - larger previews */
+#camera-video {
+    max-width: 300px;
+    width: 100%;
     height: auto;
-    max-height: 160px; /* compact preview */
+    max-height: 200px;
     display: block;
+    border-radius: 15px;
 }
 
-.capture-btn {
+#preview-image,
+#preview-video {
+    max-width: 200px;
+    width: auto;
+    height: auto;
+    max-height: 120px;
+    display: block;
+    border-radius: 15px;
+}
+
+.capture-controls {
     position: absolute;
     bottom: 15px;
     left: 50%;
     transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+}
+
+.capture-btn {
     background: #ff5722;
     color: white;
     border: none;
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
-    font-size: 1.5em;
+    font-size: 1.2em;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(255,87,34,0.4);
@@ -180,40 +360,92 @@ body {
 
 .capture-btn:hover {
     background: #e64a19;
-    transform: translateX(-50%) scale(1.1);
+    transform: scale(1.1);
     box-shadow: 0 6px 20px rgba(255,87,34,0.6);
 }
 
 .capture-btn:active {
-    transform: translateX(-50%) scale(0.95);
+    transform: scale(0.95);
 }
 
-.image-preview {
-    display: inline-block;
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+.recording-btn {
+    background: #d32f2f;
 }
 
-.image-note {
-    font-size: 0.9em;
-    color: #00695c;
-    margin-top: 10px;
-    font-weight: 500;
+.recording-btn:hover {
+    background: #b71c1c;
+}
+
+.media-preview-content {
     text-align: center;
+    margin: 15px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-/* Chat window: restore fixed height; page can scroll normally */
+#media-preview-container {
+    margin-bottom: 5px;
+    text-align: left;
+    padding: 5px;
+}
+
+#camera-container {
+    background: rgba(0,0,0,0.05);
+    border-top: 1px solid #e0e0e0;
+    padding: 15px;
+}
+
+.media-note {
+    font-size: 0.75em;
+    color: #00695c;
+    margin-top: 5px;
+    font-weight: 500;
+    text-align: left;
+}
+
+/* Recording Status Styles */
+#recording-status {
+    text-align: center;
+    padding: 10px 20px;
+    background: rgba(211, 47, 47, 0.1);
+    border-top: 1px solid rgba(211, 47, 47, 0.2);
+}
+
+.recording-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #d32f2f;
+    font-weight: 500;
+}
+
+.recording-dot {
+    width: 12px;
+    height: 12px;
+    background: #d32f2f;
+    border-radius: 50%;
+    animation: recording-pulse 1s infinite;
+}
+
+@keyframes recording-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Chat window: flexible height to fill available space */
+/* Chat window: take remaining space */
 #chat-window { 
-    height: 500px; 
-    padding: 16px; 
+    height: calc(100vh - 120px); 
+    padding: 10px 10px 80px 10px; 
     background: #fafafa; 
     overflow-y: auto; 
-    -webkit-overflow-scrolling: touch; /* enable momentum scroll on iOS */
-    overscroll-behavior: contain; /* prevent parent from hijacking scroll */
+    -webkit-overflow-scrolling: touch; 
+    overscroll-behavior: contain; 
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .message-container {
@@ -243,14 +475,137 @@ body {
     border: 1px solid #e0e0e0;
     border-bottom-left-radius: 5px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    position: relative;
+    padding-right: 35px;
 }
 
-/* Input stays pinned at bottom */
+.speaker-btn {
+    position: absolute;
+    top: 6px;
+    right: -8px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.speaker-btn:hover {
+    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+    transform: scale(1.05);
+    box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4);
+}
+
+.speaker-btn.speaking {
+    background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+    animation: speakerPulse 1.5s infinite;
+}
+
+@keyframes speakerPulse {
+    0% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(33, 150, 243, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0); }
+}
+
+.message-content {
+    flex: 1;
+    line-height: 1.5;
+}
+
+/* Input Area - Always visible at bottom */
+.input-area {
+    position: fixed !important;
+    bottom: 40px !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: white !important;
+    border-top: 1px solid #e0e0e0;
+    padding: 8px;
+    margin: 0 !important;
+    z-index: 9999 !important;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    width: 100% !important;
+}
+
+/* Input stays pinned at bottom with media controls */
 .input-group { 
     display: flex; 
-    padding: 14px 16px; 
+    align-items: center;
+    padding: 8px 10px; 
     background: white;
-    border-top: 1px solid #e0e0e0;
+    gap: 5px;
+    overflow: hidden;
+}
+
+.media-controls-inline {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Minimalist colorful media buttons */
+.media-btn-inline {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    font-size: 1.4em;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Individual button colors */
+#toggle-camera {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+}
+
+#record-video {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    box-shadow: 0 2px 8px rgba(250, 112, 154, 0.3);
+}
+
+.file-upload-btn {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    box-shadow: 0 2px 8px rgba(168, 237, 234, 0.3);
+    color: #333 !important;
+}
+
+.media-btn-inline:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.media-btn-inline:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.media-btn-inline.clear-btn {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.media-btn-inline.clear-btn:hover {
+    background: #b71c1c;
 }
 
 #user-input { 
@@ -259,7 +614,6 @@ body {
     border: 1px solid #ddd; 
     border-radius: 25px; 
     font-size: 1em;
-    margin-right: 10px;
     outline: none;
     transition: border-color 0.3s ease;
 }
@@ -268,7 +622,41 @@ body {
     border-color: #00695c;
 }
 
-#chat-form button { 
+.mic-btn {
+    background: linear-gradient(135deg, #4caf50 0%, #81c784 100%); 
+    color: #fff; 
+    border: none; 
+    border-radius: 50%; 
+    width: 50px;
+    height: 50px;
+    cursor: pointer; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-size: 20px;
+    margin-right: 8px;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.mic-btn:hover { 
+    background: linear-gradient(135deg, #66bb6a 0%, #a5d6a7 100%);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.mic-btn.recording {
+    background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+}
+
+.send-btn { 
     background: #00695c; 
     color: #fff; 
     border: none; 
@@ -282,7 +670,7 @@ body {
     transition: all 0.3s ease;
 }
 
-#chat-form button:hover { 
+.send-btn:hover { 
     background: #00897b; 
     transform: scale(1.05);
 }
@@ -305,10 +693,34 @@ body {
 /* Responsive Design */
 @media (max-width: 600px) {
     .container {
-        width: 95%;
-        margin: 16px auto; /* remove fixed viewport height */
+        margin-bottom: 0; /* No bottom margin to prevent external scrolling */
+        height: calc(100vh - 90px);
     }
-    #welcome-screen { padding: 28px 16px; }
-    #camera-video, #captured-image { max-height: 140px; }
+    #welcome-screen { 
+        padding: 20px 16px; /* Reduced padding for mobile */
+    }
+    #camera-video { max-height: 400px; }
+    #preview-image, #preview-video { max-height: 400px; }
     .user-msg, .bot-msg { max-width: 85%; }
+    .speaker-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+        right: -8px;
+    }
+    .input-group { 
+        padding: 12px 16px;
+        gap: 8px;
+    }
+    .media-controls-inline { gap: 8px; }
+    .media-btn-inline { 
+        width: 40px; 
+        height: 40px; 
+        font-size: 1.2em;
+        border-radius: 50%;
+    }
+    #user-input { font-size: 16px; } /* Prevent zoom on iOS */
+    .media-preview-content {
+        margin: 10px;
+    }
 }

@@ -10,7 +10,11 @@ An educational chatbot powered by Google's Gemini AI, focused on ethics, sustain
 - 👤 Personalized experience: Asks your name and tailors responses
 - 🎨 Modern UI: Smooth animations and typing indicator
 - 📝 Markdown rendering: Bot messages support basic markdown (**bold**, *italic*, new lines)
-- 📷 Webcam & images: Capture an image and ask questions about it (multimodal Gemini request)
+- 2. (Optional) **Use media options**: 
+   - 📷 Webcam & media: Capture photos, record videos, or upload files for analysis (multimodal Gemini request)
+- 🎥 Video recording: Record videos with audio and get AI analysis
+- 📁 File uploads: Upload your own images and videos for analysis
+- � Audio input: Record voice messages that are transcribed by Gemini AI (requires internet connection)
 - 📱 Mobile friendly: Works on phones and desktop; chat window scrolls smoothly
 - 🧰 Utility endpoints: `/models` to list available models, `/conversation/{session_id}` to fetch history
 
@@ -61,18 +65,23 @@ An educational chatbot powered by Google's Gemini AI, focused on ethics, sustain
 
 1. **Enter your name** when prompted on the welcome screen
 2. **Start chatting** about ethics, sustainability, or any SDG-related topics
-3. **Your conversations are automatically saved** and will be restored when you return
-4. **Ask questions** like:
+3. **Use the microphone button (🎤)** to record voice messages - they'll be transcribed by Gemini AI and sent automatically
+4. **Your conversations are automatically saved** and will be restored when you return
+5. **Ask questions** like:
    - "What is SDG 2?"
    - "How can I live more sustainably?"
    - "What are the ethics of fast fashion?"
    - "Tell me about circular economy"
+   - "What sustainable practices do you see in this image/video?"
+   - "Analyze the environmental impact shown in this content"
 
 ## 📁 Project Structure
 
 ```
 Chat bot/
 ├── app.py                 # Main FastAPI application
+├── config/
+│   └── gemini_key.py     # Holds GEMINI_API_KEY (keep private)
 ├── templates/
 │   └── index.html        # HTML template for the web interface
 ├── static/
@@ -98,11 +107,13 @@ The chatbot uses Google's Gemini-1.5-Flash model, which is free tier compatible.
 
 ### UI/UX Features
 - Welcome screen with name input
-- Left-aligned user messages (green bubbles)
-- Right-aligned bot responses (white bubbles)
+- Right-aligned user messages (green bubbles) and left-aligned bot responses (white)
 - Typing indicator while processing
 - Smooth animations and transitions
 - Markdown formatting support (**bold**, *italic*)
+- Media controls: camera toggle, video recording, file upload
+- Real-time video recording with timer and visual feedback
+- Media preview with clear/remove options
 
 ### Educational Focus
 - All responses are filtered through an educational lens

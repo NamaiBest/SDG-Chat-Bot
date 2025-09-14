@@ -8,6 +8,7 @@ import json
 import base64
 from datetime import datetime
 import uuid
+import mimetypes
 from config.gemini_key import GEMINI_API_KEY
 
 app = FastAPI()
@@ -22,8 +23,9 @@ SYSTEM_PROMPT = (
     "Only mention UN SDG goals when they naturally fit the conversation - don't force them into every response. "
     "If a question is completely off-topic, gently guide toward sustainability themes. "
     "If someone asks about the creator, Namai is an interdisciplinary dual major student who created this chatbot. "
-    "When analyzing images, relate them to sustainability, ethics, or environmental topics when relevant. "
-    "Look for opportunities to discuss sustainable practices, environmental impact, or ethical considerations in what you see."
+    "When analyzing images or videos, relate them to sustainability, ethics, or environmental topics when relevant. "
+    "Look for opportunities to discuss sustainable practices, environmental impact, or ethical considerations in what you see. "
+    "For videos, analyze the content, actions, and context visible in the frames to provide meaningful insights."
 )
 
 # Serve static files (for custom CSS/JS)
@@ -34,7 +36,7 @@ MEMORY_DIR = "memory"
 if not os.path.exists(MEMORY_DIR):
     os.makedirs(MEMORY_DIR)
 
-def save_conversation(session_id, username, message, response, has_image=False):
+def save_conversation(session_id, username, message, response, has_media=False, media_type=None):
     """Save conversation to memory"""
     try:
         file_path = os.path.join(MEMORY_DIR, f"{session_id}.json")
@@ -53,7 +55,8 @@ def save_conversation(session_id, username, message, response, has_image=False):
             "timestamp": datetime.now().isoformat(),
             "user_message": message,
             "bot_response": response,
-            "has_image": has_image
+            "has_media": has_media,
+            "media_type": media_type
         })
         
         # Save updated conversation
@@ -93,8 +96,11 @@ def get_conversation_context(session_id):
     recent_messages = conversation["messages"][-10:]
     context = "Here's our conversation history so you can remember important details:\n\n"
     for msg in recent_messages:
-        image_note = " (with image)" if msg.get("has_image") else ""
-        context += f"User: {msg['user_message']}{image_note}\nYou responded: {msg['bot_response']}\n\n"
+        media_note = ""
+        if msg.get("has_media"):
+            media_type = msg.get("media_type", "media")
+            media_note = f" (with {media_type})"
+        context += f"User: {msg['user_message']}{media_note}\nYou responded: {msg['bot_response']}\n\n"
     
     context += "Remember any personal details, preferences, or facts mentioned by the user in this conversation.\n"
     
@@ -126,8 +132,16 @@ async def chat(request: Request):
     username = data.get("username", "User")
     session_id = data.get("session_id", str(uuid.uuid4()))
     image_data = data.get("image", None)
+    video_data = data.get("video", None)
     
-    print(f"🔄 Processing chat - Session: {session_id}, User: {username}, Has Image: {bool(image_data)}")
+    has_media = bool(image_data or video_data)
+    media_type = None
+    if image_data:
+        media_type = "image"
+    elif video_data:
+        media_type = "video"
+    
+    print(f"🔄 Processing chat - Session: {session_id}, User: {username}, Has Media: {has_media}, Type: {media_type}")
     
     # Get conversation context for better responses
     context = get_conversation_context(session_id)
@@ -141,20 +155,36 @@ async def chat(request: Request):
     # Prepare payload for Gemini API
     parts = [{"text": prompt}]
     
-    # Add image if provided
+    # Add media if provided
     if image_data:
         try:
-            # Extract base64 data (remove data:image/jpeg;base64, prefix)
-            base64_data = image_data.split(',')[1]
+            # Extract base64 data and determine MIME type
+            header, base64_data = image_data.split(',', 1)
+            mime_type = header.split(':')[1].split(';')[0]
             parts.append({
                 "inline_data": {
-                    "mime_type": "image/jpeg",
+                    "mime_type": mime_type,
                     "data": base64_data
                 }
             })
             print("✅ Image added to request")
         except Exception as e:
             print(f"❌ Error processing image: {e}")
+    
+    elif video_data:
+        try:
+            # Extract base64 data and determine MIME type
+            header, base64_data = video_data.split(',', 1)
+            mime_type = header.split(':')[1].split(';')[0]
+            parts.append({
+                "inline_data": {
+                    "mime_type": mime_type,
+                    "data": base64_data
+                }
+            })
+            print("✅ Video added to request")
+        except Exception as e:
+            print(f"❌ Error processing video: {e}")
     
     payload = {
         "contents": [
@@ -180,11 +210,82 @@ async def chat(request: Request):
         bot_reply = f"Exception: {str(e)}"
     
     # Save conversation to memory
-    save_success = save_conversation(session_id, username, user_input, bot_reply, bool(image_data))
+    save_success = save_conversation(session_id, username, user_input, bot_reply, has_media, media_type)
     if not save_success:
         print("⚠️ Failed to save conversation to memory")
     
     return JSONResponse({"reply": bot_reply, "session_id": session_id})
+
+@app.post("/audio-to-text")
+async def audio_to_text(request: Request):
+    """Convert audio to text using Gemini API"""
+    try:
+        data = await request.json()
+        audio_data = data.get("audio", None)
+        username = data.get("username", "User")
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        
+        if not audio_data:
+            return JSONResponse({"error": "No audio data provided"}, status_code=400)
+        
+        print(f"🎤 Processing audio transcription - Session: {session_id}, User: {username}")
+        
+        # Extract base64 data and determine MIME type
+        try:
+            header, base64_data = audio_data.split(',', 1)
+            mime_type = header.split(':')[1].split(';')[0]
+            print(f"Audio MIME type: {mime_type}")
+        except Exception as e:
+            print(f"❌ Error parsing audio data: {e}")
+            return JSONResponse({"error": "Invalid audio data format"}, status_code=400)
+        
+        # Create prompt for audio transcription
+        prompt = (
+            "Please transcribe the speech in this audio file. "
+            "Return only the transcribed text, nothing else. "
+            "If the audio is unclear or inaudible, return 'Audio unclear, please try again.'"
+        )
+        
+        # Prepare payload for Gemini API
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": prompt},
+                        {
+                            "inline_data": {
+                                "mime_type": mime_type,
+                                "data": base64_data
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        # Send to Gemini API
+        api_url = f"{GEMINI_BASE_URL}/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+        response = requests.post(api_url, json=payload)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "candidates" in data and len(data["candidates"]) > 0:
+                transcribed_text = data["candidates"][0]["content"]["parts"][0]["text"]
+                # Clean up the response
+                transcribed_text = transcribed_text.strip()
+                print(f"✅ Audio transcribed: {transcribed_text[:50]}...")
+                return JSONResponse({"text": transcribed_text})
+            else:
+                print("❌ No candidates in Gemini response")
+                return JSONResponse({"error": "Failed to transcribe audio"}, status_code=500)
+        else:
+            error_detail = response.text
+            print(f"❌ Gemini API error: {error_detail}")
+            return JSONResponse({"error": f"Gemini API error: {error_detail}"}, status_code=500)
+            
+    except Exception as e:
+        print(f"❌ Exception in audio transcription: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 @app.get("/conversation/{session_id}")
 async def get_conversation(session_id: str):
