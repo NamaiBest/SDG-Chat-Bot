@@ -9,7 +9,17 @@ import base64
 from datetime import datetime
 import uuid
 import mimetypes
-from config.gemini_key import GEMINI_API_KEY
+
+# Get API key from environment variable (for deployment) or fallback to local config
+try:
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+    if not GEMINI_API_KEY:
+        from config.gemini_key import GEMINI_API_KEY
+except ImportError:
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY not found in environment variables or config file")
 
 app = FastAPI()
 
