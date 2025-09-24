@@ -872,17 +872,51 @@ function goBackToMain() {
 
 async function loadConversationHistory() {
     try {
-        const response = await fetch(`/conversation/${sessionId}`);
-        const data = await response.json();
+        console.log('Loading conversation history for session:', sessionId);
         
-        if (data.messages && data.messages.length > 0) {
-            data.messages.forEach(msg => {
-                appendMessage('user', msg.user_message, false);
-                appendMessage('bot', msg.bot_response, false);
+        // Load conversations from both modes
+        const [sustainabilityResponse, personalAssistantResponse] = await Promise.all([
+            fetch(`/conversation/sustainability/${sessionId}`).catch(() => ({ json: () => ({ messages: [] }) })),
+            fetch(`/conversation/personal-assistant/${sessionId}`).catch(() => ({ json: () => ({ messages: [] }) }))
+        ]);
+        
+        const sustainabilityData = await sustainabilityResponse.json();
+        const personalAssistantData = await personalAssistantResponse.json();
+        
+        // Combine all messages from both modes
+        const allMessages = [];
+        
+        if (sustainabilityData.messages && sustainabilityData.messages.length > 0) {
+            allMessages.push(...sustainabilityData.messages.map(msg => ({ ...msg, mode: 'sustainability' })));
+            console.log(`Loaded ${sustainabilityData.messages.length} messages from sustainability mode`);
+        }
+        
+        if (personalAssistantData.messages && personalAssistantData.messages.length > 0) {
+            allMessages.push(...personalAssistantData.messages.map(msg => ({ ...msg, mode: 'personal-assistant' })));
+            console.log(`Loaded ${personalAssistantData.messages.length} messages from personal-assistant mode`);
+        }
+        
+        if (allMessages.length > 0) {
+            // Sort messages by timestamp to get chronological order
+            allMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            console.log(`Displaying ${allMessages.length} messages in chronological order`);
+            
+            // Display all messages in chronological order
+            allMessages.forEach((msg, index) => {
+                // Add a subtle mode indicator for context
+                const modeIndicator = msg.mode === 'sustainability' ? '🌱' : '🤖';
+                const userMessage = msg.user_message;
+                const botMessage = msg.bot_response;
+                
+                appendMessage('user', userMessage, false);
+                appendMessage('bot', botMessage, false);
             });
+        } else {
+            console.log('No previous conversation history found');
         }
     } catch (error) {
-        console.log('No previous conversation found');
+        console.log('Error loading conversation history:', error);
     }
 }
 

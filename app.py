@@ -497,8 +497,19 @@ async def audio_to_text(request: Request):
 
 @app.get("/conversation/{session_id}")
 async def get_conversation(session_id: str):
-    """Get conversation history"""
-    conversation = load_conversation(session_id)
+    """Get conversation history (legacy endpoint - uses sustainability mode)"""
+    conversation = load_conversation(session_id, "sustainability")
+    if conversation:
+        return conversation
+    return {"messages": []}
+
+@app.get("/conversation/{mode}/{session_id}")
+async def get_conversation_by_mode(mode: str, session_id: str):
+    """Get conversation history for specific mode"""
+    if mode not in ["sustainability", "personal-assistant"]:
+        return {"error": "Invalid mode. Must be 'sustainability' or 'personal-assistant'"}
+    
+    conversation = load_conversation(session_id, mode)
     if conversation:
         return conversation
     return {"messages": []}
