@@ -11,18 +11,47 @@
     <div id="top-header">
         <div class="header-left">🌱 SDG Teacher</div>
         <div class="header-center"><span id="header-message">Ask me about ethics, sustainability, or SDG goals.</span></div>
-        <div class="header-right"></div>
+        <div class="header-right">
+            <button id="back-to-main" class="back-btn" style="display: none;">← Back to Main</button>
+        </div>
     </div>
 
     <div class="container">
         <!-- Welcome Screen -->
         <div id="welcome-screen">
-            <h1>🌱 Welcome to SDG Teacher Chatbot</h1>
-            <p>Your personal guide to ethics, sustainability, and UN SDG goals!</p>
-            <div class="name-input-section">
+            <div class="mode-toggle-container">
+                <div class="mode-toggle">
+                    <input type="checkbox" id="mode-toggle" class="mode-toggle-input">
+                    <label for="mode-toggle" class="mode-toggle-label">
+                        <span class="mode-toggle-text" data-on="🤖 Personal Assistant" data-off="🌱 Sustainability Teacher"></span>
+                        <span class="mode-toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <h1 id="main-title">🌱 Welcome to SDG Teacher Chatbot</h1>
+            <p id="main-subtitle">Your personal guide to ethics, sustainability, and UN SDG goals!</p>
+            <div class="name-input-section" id="sustainability-input">
                 <label for="username">What's your name?</label>
                 <input type="text" id="username" placeholder="Enter your name..." required>
                 <button id="start-chat">Start Learning</button>
+            </div>
+            
+            <div class="profile-section" id="assistant-input" style="display: none;">
+                <div class="profile-selection" id="existing-profiles" style="display: none;">
+                    <label for="profile-select">Select your profile:</label>
+                    <select id="profile-select">
+                        <option value="">Choose existing profile...</option>
+                    </select>
+                    <button id="select-profile">Continue with Profile</button>
+                    <div class="profile-divider">
+                        <span>or</span>
+                    </div>
+                </div>
+                <div class="new-profile-section">
+                    <label for="new-username">Create new profile:</label>
+                    <input type="text" id="new-username" placeholder="Enter your name..." required>
+                    <button id="create-profile">Create Profile</button>
+                </div>
             </div>
         </div>
 
@@ -101,6 +130,36 @@
             </div>
         </form>
     </div>
+
+    <!-- Profile Details Modal -->
+    <div id="profile-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Complete Your Profile</h3>
+                <button id="modal-close" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="profile-background">Background (optional):</label>
+                <textarea id="profile-background" placeholder="e.g., College student, working professional, looking for resources..." rows="3"></textarea>
+                
+                <label for="living-situation">Living situation (optional):</label>
+                <select id="living-situation">
+                    <option value="">Select...</option>
+                    <option value="student">Student</option>
+                    <option value="family-home">Family home</option>
+                    <option value="apartment">Own place</option>
+                    <option value="homeless">Homeless</option>
+                    <option value="shelter">Shelter</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button id="skip-details">Skip & Start</button>
+                <button id="save-and-start">Save & Start</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/static/script.js"></script>
 </body>
 </html>

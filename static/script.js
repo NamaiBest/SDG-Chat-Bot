@@ -6,6 +6,25 @@ const chatInterface = document.getElementById('chat-interface');
 const usernameInput = document.getElementById('username');
 const startChatBtn = document.getElementById('start-chat');
 const userDisplayName = document.getElementById('user-display-name');
+const modeToggle = document.getElementById('mode-toggle');
+const mainTitle = document.getElementById('main-title');
+const mainSubtitle = document.getElementById('main-subtitle');
+const backToMainBtn = document.getElementById('back-to-main');
+
+// Profile elements
+const sustainabilityInput = document.getElementById('sustainability-input');
+const assistantInput = document.getElementById('assistant-input');
+const existingProfiles = document.getElementById('existing-profiles');
+const profileSelect = document.getElementById('profile-select');
+const selectProfileBtn = document.getElementById('select-profile');
+const newUsernameInput = document.getElementById('new-username');
+const profileBackgroundInput = document.getElementById('profile-background');
+const livingSituationSelect = document.getElementById('living-situation');
+const createProfileBtn = document.getElementById('create-profile');
+const profileModal = document.getElementById('profile-modal');
+const modalClose = document.getElementById('modal-close');
+const skipDetailsBtn = document.getElementById('skip-details');
+const saveAndStartBtn = document.getElementById('save-and-start');
 
 // Debug: Check if elements are found
 console.log('DOM elements check:');
@@ -45,6 +64,10 @@ let currentUsername = '';
 let sessionId = localStorage.getItem('sdg_session_id') || generateSessionId();
 let cameraStream = null;
 let isCameraOn = false;
+
+// Mode state
+let isPersonalAssistantMode = false;
+let environmentMemory = [];
 let isRecording = false;
 let mediaRecorder = null;
 let recordedChunks = [];
@@ -69,6 +92,14 @@ function generateSessionId() {
 async function toggleCamera() {
     try {
         console.log('Opening camera overlay for photo...');
+        console.log('User agent:', navigator.userAgent);
+        console.log('Is HTTPS:', location.protocol === 'https:');
+        console.log('Is localhost:', location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+        
+        // Check if getUserMedia is available
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('getUserMedia is not supported in this browser');
+        }
         
         // Get camera stream
         cameraStream = await navigator.mediaDevices.getUserMedia({ 
@@ -767,6 +798,78 @@ function startChat() {
     console.log('startChat function completed');
 }
 
+function showChatInterface() {
+    console.log('showChatInterface called for user:', currentUsername);
+    
+    // Update display name if element exists
+    if (userDisplayName) {
+        userDisplayName.textContent = currentUsername;
+    }
+    
+    // Update header message
+    const headerMessage = document.getElementById('header-message');
+    if (headerMessage) {
+        const headerText = isPersonalAssistantMode 
+            ? `Hello ${currentUsername}! Ready to analyze your environment.`
+            : `Hello ${currentUsername}! Ask me about ethics, sustainability, or SDG goals.`;
+        headerMessage.textContent = headerText;
+    }
+    
+    console.log('Switching to chat interface...');
+    welcomeScreen.style.display = 'none';
+    chatInterface.style.display = 'block';
+    document.getElementById('input-area').style.display = 'block';
+    
+    // Show back button
+    if (backToMainBtn) {
+        backToMainBtn.style.display = 'block';
+    }
+    
+    // Load conversation history
+    loadConversationHistory();
+    
+    // Welcome message
+    setTimeout(() => {
+        const welcomeMessage = isPersonalAssistantMode 
+            ? `🤖 Welcome back, ${currentUsername}! I remember our previous sessions. How can I help you analyze your environment today?`
+            : `👋 Welcome back, ${currentUsername}! I remember our previous conversations. What would you like to learn about today?`;
+        appendMessage('bot', welcomeMessage);
+    }, 500);
+    
+    userInput.focus();
+    console.log('showChatInterface completed');
+}
+
+function goBackToMain() {
+    console.log('Going back to main page');
+    
+    // Hide chat interface
+    chatInterface.style.display = 'none';
+    document.getElementById('input-area').style.display = 'none';
+    
+    // Hide back button
+    if (backToMainBtn) {
+        backToMainBtn.style.display = 'none';
+    }
+    
+    // Reset header message
+    const headerMessage = document.getElementById('header-message');
+    if (headerMessage) {
+        headerMessage.textContent = 'Ask me about ethics, sustainability, or SDG goals.';
+    }
+    
+    // Show welcome screen
+    welcomeScreen.style.display = 'block';
+    
+    // Clear chat window
+    chatWindow.innerHTML = '';
+    
+    // Clear any media
+    clearMedia();
+    
+    console.log('Returned to main page');
+}
+
 async function loadConversationHistory() {
     try {
         const response = await fetch(`/conversation/${sessionId}`);
@@ -928,6 +1031,14 @@ async function toggleAudioRecording() {
 async function startAudioRecording() {
     try {
         console.log('Starting audio recording...');
+        console.log('User agent:', navigator.userAgent);
+        console.log('Is HTTPS:', location.protocol === 'https:');
+        console.log('Is localhost:', location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+        
+        // Check if getUserMedia is available
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('getUserMedia is not supported in this browser');
+        }
         
         // Get microphone access
         audioStream = await navigator.mediaDevices.getUserMedia({ 
@@ -981,7 +1092,9 @@ async function startAudioRecording() {
                         body: JSON.stringify({
                             audio: reader.result,
                             username: currentUsername,
-                            session_id: sessionId
+                            session_id: sessionId,
+                            mode: isPersonalAssistantMode ? 'personal-assistant' : 'sustainability',
+                            environment_memory: isPersonalAssistantMode ? formatMemoryForAI(environmentMemory) : []
                         })
                     });
                     
@@ -992,8 +1105,16 @@ async function startAudioRecording() {
                         userInput.value = result.text;
                         userInput.placeholder = 'AI transcribed your audio! Sending...';
                         
-                        // Show success message
-                        showTemporaryMessage(`🎤 Transcribed: "${result.text}"`, '#4caf50');
+                        // Show success message with environmental context if available
+                        let message = `🎤 Transcribed: "${result.text}"`;
+                        if (result.environmental_context && isPersonalAssistantMode) {
+                            message += `\n🔊 Audio Context: ${result.environmental_context}`;
+                            
+                            // Update environment memory with audio context
+                            updateEnvironmentMemoryFromAudio(result.environmental_context);
+                        }
+                        
+                        showTemporaryMessage(message, '#4caf50');
                         
                         // Auto-send the message
                         setTimeout(() => {
@@ -1125,6 +1246,7 @@ captureImageBtn.addEventListener('click', captureImage);
 clearMediaBtn.addEventListener('click', clearMedia);
 fileUploadInput.addEventListener('change', handleFileUpload);
 micBtn.addEventListener('click', toggleAudioRecording);
+backToMainBtn.addEventListener('click', goBackToMain);
 
 // New camera overlay event listeners
 captureConfirmBtn.addEventListener('click', captureFromOverlay);
@@ -1155,11 +1277,34 @@ chatForm.addEventListener('submit', async (e) => {
     chatWindow.scrollTop = chatWindow.scrollHeight;
     
     try {
+        const formattedMemory = isPersonalAssistantMode ? formatMemoryForAI(environmentMemory) : [];
+        
+        // Get current profile for background context
+        const userProfiles = getStoredProfiles();
+        const userProfile = userProfiles.find(p => p.username === currentUsername);
+        
         const requestData = { 
             message, 
             username: currentUsername,
-            session_id: sessionId
+            session_id: sessionId,
+            mode: isPersonalAssistantMode ? 'personal-assistant' : 'sustainability',
+            environment_memory: formattedMemory,
+            profile_background: userProfile?.background || '',
+            living_situation: userProfile?.livingSituation || ''
         };
+        
+        // Debug logging
+        console.log('🔍 Chat Request Debug:', {
+            mode: requestData.mode,
+            isPersonalAssistantMode,
+            currentUsername,
+            sessionId,
+            environmentMemoryLength: environmentMemory.length,
+            formattedMemoryLength: formattedMemory.length,
+            formattedMemorySample: formattedMemory.slice(0, 2),
+            profileBackground: userProfile?.background || 'None',
+            livingSituation: userProfile?.livingSituation || 'None'
+        });
         
         // Add media data if available
         if (currentMediaData) {
@@ -1181,6 +1326,11 @@ chatForm.addEventListener('submit', async (e) => {
         chatWindow.removeChild(typingDiv);
         
         appendMessage('bot', data.reply);
+        
+        // Update environment memory in Personal Assistant mode
+        if (isPersonalAssistantMode && currentMediaData && data.reply) {
+            updateEnvironmentMemory(data.reply, currentMediaType, message);
+        }
         
         // Update session ID if new one was created
         if (data.session_id) {
@@ -1209,4 +1359,491 @@ window.addEventListener('load', () => {
     
     // Initialize speech synthesis voices
     initializeSpeechSynthesis();
+    
+    // Initialize mode toggle
+    initializeModeToggle();
+    
+    // Initialize profile system
+    initializeProfileSystem();
 });
+
+function initializeProfileSystem() {
+    if (selectProfileBtn) {
+        selectProfileBtn.addEventListener('click', () => {
+            const selectedUsername = profileSelect.value;
+            console.log('Profile selected:', selectedUsername);
+            if (selectedUsername) {
+                currentUsername = selectedUsername;
+                environmentMemory = getProfileMemory(selectedUsername);
+                
+                // Keep existing session ID for conversation continuity
+                // Only generate new if none exists
+                if (!sessionId) {
+                    sessionId = generateSessionId();
+                    localStorage.setItem('sdg_session_id', sessionId);
+                }
+                
+                console.log('Starting chat with profile:', currentUsername);
+                console.log('Loaded environment memory:', environmentMemory.length, 'observations');
+                
+                // Show memory status to user
+                if (environmentMemory.length > 0) {
+                    showTemporaryMessage(`🧠 Loaded ${environmentMemory.length} previous environment observations for ${currentUsername}`, '#2196f3');
+                } else {
+                    showTemporaryMessage(`👋 Welcome ${currentUsername}! Upload images/videos to build your environment memory.`, '#2196f3');
+                }
+                
+                showChatInterface();
+            } else {
+                console.log('No profile selected');
+                alert('Please select a profile first');
+            }
+        });
+    } else {
+        console.log('selectProfileBtn not found');
+    }
+    
+    if (createProfileBtn) {
+        createProfileBtn.addEventListener('click', () => {
+            const newUsername = newUsernameInput.value.trim();
+            
+            if (newUsername) {
+                // Show the modal
+                profileModal.style.display = 'flex';
+                // Focus on the background textarea after modal animation
+                setTimeout(() => profileBackgroundInput.focus(), 300);
+            } else {
+                showTemporaryMessage('Please enter your name first', '#f44336');
+            }
+        });
+    }
+    
+    // Handle modal close
+    if (modalClose) {
+        modalClose.addEventListener('click', () => {
+            profileModal.style.display = 'none';
+        });
+    }
+    
+    // Close modal when clicking outside
+    if (profileModal) {
+        profileModal.addEventListener('click', (e) => {
+            if (e.target === profileModal) {
+                profileModal.style.display = 'none';
+            }
+        });
+    }
+    
+    // Handle skip details button
+    if (skipDetailsBtn) {
+        skipDetailsBtn.addEventListener('click', () => {
+            const newUsername = newUsernameInput.value.trim();
+            profileModal.style.display = 'none';
+            createProfileWithDetails(newUsername, '', '');
+        });
+    }
+    
+    // Handle save and start button
+    if (saveAndStartBtn) {
+        saveAndStartBtn.addEventListener('click', () => {
+            const newUsername = newUsernameInput.value.trim();
+            const background = profileBackgroundInput?.value.trim() || '';
+            const livingSituation = livingSituationSelect?.value || '';
+            profileModal.style.display = 'none';
+            createProfileWithDetails(newUsername, background, livingSituation);
+        });
+    }
+}
+
+function createProfileWithDetails(username, background, livingSituation) {
+    currentUsername = username;
+    
+    // Keep existing session ID for conversation continuity
+    // Only generate new if none exists
+    if (!sessionId) {
+        sessionId = generateSessionId();
+        localStorage.setItem('sdg_session_id', sessionId);
+    }
+    
+    // Save new profile with background information
+    saveProfile(username, sessionId, background, livingSituation);
+    environmentMemory = [];
+    
+    // Show background info confirmation
+    if (background || livingSituation) {
+        const situationText = livingSituation ? ` (${livingSituation})` : '';
+        showTemporaryMessage(`✅ Profile created with background info${situationText}`, '#2196f3');
+    } else {
+        showTemporaryMessage(`✅ Profile created for ${username}`, '#2196f3');
+    }
+    
+    showChatInterface();
+}
+
+// Mode Toggle Functions
+function initializeModeToggle() {
+    if (modeToggle) {
+        modeToggle.addEventListener('change', toggleMode);
+        
+        // Load saved mode preference
+        const savedMode = localStorage.getItem('sdg_chat_mode');
+        if (savedMode === 'personal-assistant') {
+            modeToggle.checked = true;
+            toggleMode();
+        }
+    }
+}
+
+function toggleMode() {
+    isPersonalAssistantMode = modeToggle.checked;
+    
+    // Update UI theme and input sections
+    if (isPersonalAssistantMode) {
+        document.body.classList.add('personal-assistant-mode');
+        mainTitle.innerHTML = '🤖 Welcome to Personal Assistant';
+        mainSubtitle.innerHTML = 'Your intelligent companion for environment analysis and meal planning!';
+        sustainabilityInput.style.display = 'none';
+        assistantInput.style.display = 'block';
+        loadUserProfiles();
+        localStorage.setItem('sdg_chat_mode', 'personal-assistant');
+    } else {
+        document.body.classList.remove('personal-assistant-mode');
+        mainTitle.innerHTML = '🌱 Welcome to SDG Teacher Chatbot';
+        mainSubtitle.innerHTML = 'Your personal guide to ethics, sustainability, and UN SDG goals!';
+        sustainabilityInput.style.display = 'block';
+        assistantInput.style.display = 'none';
+        localStorage.setItem('sdg_chat_mode', 'sustainability');
+    }
+    
+    console.log('Mode switched to:', isPersonalAssistantMode ? 'Personal Assistant' : 'Sustainability Teacher');
+}
+
+// User Profile Management
+function loadUserProfiles() {
+    const profiles = getStoredProfiles();
+    const profileSelect = document.getElementById('profile-select');
+    
+    // Clear existing options except the first one
+    while (profileSelect.children.length > 1) {
+        profileSelect.removeChild(profileSelect.lastChild);
+    }
+    
+    if (profiles.length > 0) {
+        profiles.forEach(profile => {
+            const option = document.createElement('option');
+            option.value = profile.username;
+            option.textContent = `${profile.username} (${profile.sessionsCount} sessions)`;
+            profileSelect.appendChild(option);
+        });
+        existingProfiles.style.display = 'block';
+    } else {
+        existingProfiles.style.display = 'none';
+    }
+}
+
+function getStoredProfiles() {
+    const profiles = localStorage.getItem('assistant_profiles');
+    return profiles ? JSON.parse(profiles) : [];
+}
+
+function saveProfile(username, sessionId, background = '', livingSituation = '') {
+    const profiles = getStoredProfiles();
+    const existingProfile = profiles.find(p => p.username === username);
+    
+    if (existingProfile) {
+        existingProfile.sessionsCount++;
+        existingProfile.lastSession = sessionId;
+        existingProfile.lastAccess = new Date().toISOString();
+        // Update background info if provided
+        if (background) existingProfile.background = background;
+        if (livingSituation) existingProfile.livingSituation = livingSituation;
+    } else {
+        profiles.push({
+            username: username,
+            sessionsCount: 1,
+            lastSession: sessionId,
+            createdAt: new Date().toISOString(),
+            lastAccess: new Date().toISOString(),
+            environmentMemory: [],
+            background: background || '',
+            livingSituation: livingSituation || ''
+        });
+    }
+    
+    localStorage.setItem('assistant_profiles', JSON.stringify(profiles));
+}
+
+function getProfileMemory(username) {
+    const profiles = getStoredProfiles();
+    const profile = profiles.find(p => p.username === username);
+    return profile ? profile.environmentMemory || [] : [];
+}
+
+function updateProfileMemory(username, memory) {
+    const profiles = getStoredProfiles();
+    const profile = profiles.find(p => p.username === username);
+    
+    if (profile) {
+        profile.environmentMemory = memory;
+        localStorage.setItem('assistant_profiles', JSON.stringify(profiles));
+    }
+}
+
+function detectTourContent(userMessage, response) {
+    // Detect if this is a comprehensive tour/overview
+    const tourKeywords = [
+        'tour', 'show you', 'look at my', 'everything on', 'all my', 'around my', 
+        'my space', 'my room', 'my table', 'my desk', 'my kitchen', 'my belongings',
+        'what do you see', 'analyze my', 'inventory', 'scan my'
+    ];
+    
+    const isTour = tourKeywords.some(keyword => 
+        userMessage.toLowerCase().includes(keyword) || 
+        response.toLowerCase().includes('comprehensive') ||
+        response.toLowerCase().includes('detailed inventory') ||
+        response.length > 1000 // Long detailed response indicates tour
+    );
+    
+    return isTour;
+}
+
+function updateEnvironmentMemoryFromResponse(response, userMessage = '') {
+    // Extract key observations from AI response
+    const observations = [];
+    const isTour = detectTourContent(userMessage, response);
+    
+    // Enhanced patterns for tour detection and item extraction
+    const patterns = [
+        /(?:I (?:see|notice|observe|identify)|Visible items?:|Items? present:|Objects? identified?:|DETAILED INVENTORY:)(.*?)(?:\n|$)/gi,
+        /(?:Food items?:|Ingredients?:|Supplies?:|Groceries?:)(.*?)(?:\n|$)/gi,
+        /(?:Environment:|Room condition:|Space analysis:|ENVIRONMENTAL ASSESSMENT:)(.*?)(?:\n|$)/gi,
+        /(?:Safety concerns?:|Hazards?:|Issues?:|SAFETY CONSIDERATIONS:)(.*?)(?:\n|$)/gi,
+        /(?:Electronics?:|Devices?:|Technology:)(.*?)(?:\n|$)/gi,
+        /(?:Furniture:|Organization:|Storage:)(.*?)(?:\n|$)/gi
+    ];
+    
+    patterns.forEach(pattern => {
+        let match;
+        while ((match = pattern.exec(response)) !== null) {
+            const observation = match[1].trim();
+            if (observation && observation.length > 10) {
+                observations.push(`${new Date().toLocaleDateString()}: ${observation}`);
+            }
+        }
+    });
+    
+    // Add observations to environment memory
+    if (observations.length > 0) {
+        environmentMemory.push(...observations);
+        
+        // Keep only last 50 observations to prevent excessive memory usage
+        if (environmentMemory.length > 50) {
+            environmentMemory = environmentMemory.slice(-50);
+        }
+        
+        // Update profile memory
+        if (currentUsername) {
+            updateProfileMemory(currentUsername, environmentMemory);
+        }
+        
+        console.log('Updated environment memory with', observations.length, 'new observations');
+    }
+}
+
+function updateEnvironmentMemoryFromAudio(audioContext) {
+    if (!fisPersonalAssistantMode || !audioContext) return;
+    
+    const now = new Date();
+    const observation = {
+        timestamp: now.toISOString(),
+        date: now.toLocaleDateString(),
+        time: now.toLocaleTimeString(),
+        day: now.toLocaleDateString('en-US', { weekday: 'long' }),
+        type: 'audio',
+        context: audioContext,
+        fullResponse: `Audio Environmental Analysis: ${audioContext}`, // Store as full response
+        summary: `Audio environment: ${audioContext}`,
+        items: extractSpecificItems(audioContext) // Extract any items mentioned in audio context
+    };
+    
+    environmentMemory.push(observation);
+    
+    // Keep only last 50 observations
+    if (environmentMemory.length > 50) {
+        environmentMemory = environmentMemory.slice(-50);
+    }
+    
+    // Update profile memory
+    if (currentUsername) {
+        updateProfileMemory(currentUsername, environmentMemory);
+    }
+    
+    console.log('Environment memory updated with audio context:', {
+        audioContext: audioContext,
+        itemsFound: observation.items.length
+    });
+}
+
+// Environment Memory Functions
+function updateEnvironmentMemory(response, mediaType, userMessage = '') {
+    if (!isPersonalAssistantMode) return;
+    
+    // Store the complete AI response as memory database
+    const now = new Date();
+    const isTour = detectTourContent(userMessage, response);
+    
+    const observation = {
+        timestamp: now.toISOString(),
+        date: now.toLocaleDateString(),
+        time: now.toLocaleTimeString(),
+        day: now.toLocaleDateString('en-US', { weekday: 'long' }),
+        type: mediaType,
+        isTour: isTour, // Mark comprehensive tours for priority reference
+        userMessage: userMessage, // Store user's request for context
+        fullResponse: response, // Store complete AI response
+        summary: generateMemorySummary(response), // Generate concise summary for quick reference
+        items: extractSpecificItems(response) // Extract specific items mentioned
+    };
+    
+    environmentMemory.push(observation);
+    
+    // Keep only last 50 observations to manage memory
+    if (environmentMemory.length > 50) {
+        environmentMemory = environmentMemory.slice(-50);
+    }
+    
+    // Update profile memory
+    if (currentUsername) {
+        updateProfileMemory(currentUsername, environmentMemory);
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('environment_memory', JSON.stringify(environmentMemory));
+    
+    console.log('Environment memory updated with full response:', {
+        type: mediaType,
+        responseLength: response.length,
+        itemsFound: observation.items.length
+    });
+}
+
+function generateMemorySummary(response) {
+    // Create a concise summary from the AI response
+    const lines = response.split('\n');
+    const importantLines = [];
+    
+    for (const line of lines) {
+        const trimmed = line.trim();
+        // Look for inventory sections, key findings, and important observations
+        if (trimmed.match(/^(DETAILED INVENTORY|ENVIRONMENTAL ASSESSMENT|VISIBLE|I can see|Items observed|Electronics|Cables)/i) ||
+            trimmed.match(/^[\d\-\*•]/) || // List items
+            trimmed.includes('visible:') || trimmed.includes('observed:') || trimmed.includes('found:') ||
+            trimmed.length > 30 && trimmed.length < 150) { // Substantive sentences
+            importantLines.push(trimmed);
+        }
+    }
+    
+    return importantLines.slice(0, 8).join(' | '); // Top 8 key points
+}
+
+function extractSpecificItems(response) {
+    // Extract specific items, brands, and objects mentioned
+    const items = [];
+    const lines = response.split('\n');
+    
+    // Common item patterns
+    const itemPatterns = [
+        /\b(USB|HDMI|ethernet|power|charging|cable|cord|wire)\b/gi,
+        /\b(watch|phone|laptop|computer|tablet|keyboard|mouse|monitor|screen)\b/gi,
+        /\b(charger|adapter|connector|hub|speaker|headphones|earbuds)\b/gi,
+        /\b(Apple|Samsung|Dell|HP|Sony|Microsoft|Google|Nintendo|PlayStation|Xbox)\b/gi,
+        /\b(iPhone|iPad|MacBook|Surface|Galaxy|Pixel)\b/gi
+    ];
+    
+    for (const line of lines) {
+        for (const pattern of itemPatterns) {
+            const matches = line.match(pattern);
+            if (matches) {
+                items.push(...matches.map(m => m.toLowerCase()));
+            }
+        }
+    }
+    
+    // Remove duplicates and return unique items
+    return [...new Set(items)];
+}
+
+function loadEnvironmentMemory() {
+    try {
+        const saved = localStorage.getItem('environment_memory');
+        if (saved) {
+            environmentMemory = JSON.parse(saved);
+            console.log('Loaded environment memory:', environmentMemory.length, 'observations');
+        }
+    } catch (error) {
+        console.log('No previous environment memory found');
+        environmentMemory = [];
+    }
+}
+
+// Format memory with time context for AI
+function formatMemoryForAI(memory) {
+    if (!memory || memory.length === 0) return [];
+    
+    const now = new Date();
+    const today = now.toLocaleDateString();
+    const yesterday = new Date(now - 24 * 60 * 60 * 1000).toLocaleDateString();
+    
+    // Prioritize tours and comprehensive scans
+    const sortedMemory = [...memory].sort((a, b) => {
+        // Tours get priority
+        if (a.isTour && !b.isTour) return -1;
+        if (!a.isTour && b.isTour) return 1;
+        // Then by recency
+        return new Date(b.timestamp) - new Date(a.timestamp);
+    });
+    
+    return sortedMemory.map(item => {
+        // Handle legacy items without date/time fields
+        if (!item.date && item.timestamp) {
+            const itemDate = new Date(item.timestamp);
+            item.date = itemDate.toLocaleDateString();
+            item.time = itemDate.toLocaleTimeString();
+            item.day = itemDate.toLocaleDateString('en-US', { weekday: 'long' });
+        }
+        
+        let timeContext = '';
+        if (item.date === today) {
+            timeContext = `Today at ${item.time}`;
+        } else if (item.date === yesterday) {
+            timeContext = `Yesterday at ${item.time}`;
+        } else {
+            timeContext = `${item.day}, ${item.date} at ${item.time}`;
+        }
+        
+        // Add tour indicator
+        const tourIndicator = item.isTour ? ' [COMPREHENSIVE TOUR]' : '';
+        
+        // Use full response if available, otherwise fall back to summary/context
+        let memoryContent = '';
+        if (item.fullResponse) {
+            // For tours, include user context
+            const userContext = item.isTour && item.userMessage ? `User request: "${item.userMessage}" | ` : '';
+            memoryContent = `${item.type} analysis${tourIndicator} - ${userContext}Summary: ${item.summary || 'Detailed scan performed'}`;
+            if (item.items && item.items.length > 0) {
+                memoryContent += ` | Items found: ${item.items.join(', ')}`;
+            }
+            // For tours, include more of the full response
+            if (item.isTour) {
+                memoryContent += `\n--- COMPREHENSIVE ANALYSIS ---\n${item.fullResponse}\n--- END ANALYSIS ---`;
+            } else {
+                memoryContent += `\n--- ANALYSIS ---\n${item.fullResponse.substring(0, 500)}...\n--- END ANALYSIS ---`;
+            }
+        } else {
+            // Legacy format
+            memoryContent = `${item.type}: ${item.summary || item.context}`;
+        }
+        
+        return `${timeContext} - ${memoryContent}`;
+    });
+}
