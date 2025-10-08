@@ -1,25 +1,39 @@
-# 🌱 SDG Teacher & Personal Assistant Chatbot
+# 🌱 SDG Teacher & Multi-Persona AI Assistant
 
-A dual-mode intelligent chatbot powered by Google's Gemini AI. Switch between **Sustainability Teacher** mode for ethics and UN SDG education, or **Personal Assistant** mode for environment analysis, meal planning, and personalized assistance. Features advanced conversation memory, profile management, and multimodal capabilities.
+A powerful dual-mode intelligent chatbot powered by Google's Gemini AI. Switch between **Sustainability Teacher** mode for ethics and UN SDG education, or **Multi-Persona Assistant** mode featuring six specialized AI personalities (Chef, Teacher, Tech, Motivation, Finance, Knowledge) that automatically switch based on your needs. Features personalized video analysis, advanced conversation memory, and multimodal capabilities.
 
 ## ✨ Features
 
 ### 🔄 Dual Mode System
-- **� Sustainability Teacher Mode**: Educational focus on ethics, sustainability, and UN SDGs
-- **🤖 Personal Assistant Mode**: Environment analysis, meal planning, organization help, and personalized assistance
+- **🌱 Sustainability Teacher Mode**: Educational focus on ethics, sustainability, and UN SDGs with personalized, caring responses
+- **🎭 Multi-Persona Assistant Mode**: Six specialized AI personalities that automatically switch based on your needs
 
-### 🧠 Advanced Memory & Profiles
+### 🎭 Multi-Persona AI Personalities
+
+#### Your Personal AI Team:
+- **👨‍🍳 Chef You**: Cooking, recipes, meal planning, nutrition, food safety, kitchen organization
+- **👨‍🏫 Teacher You**: Learning, education, study tips, explaining concepts, homework help, skill development  
+- **👨‍💻 Tech You**: Technology, gadgets, software, troubleshooting, digital organization, apps, devices
+- **💪 Motivation You**: Encouragement, goal setting, productivity, wellness, mental health, personal growth
+- **💰 Finance You**: Money management, budgeting, savings, investment basics, financial planning
+- **🧠 Knowledge You**: General knowledge, facts, research, curiosity-driven questions, trivia
+
+*Each persona automatically activates based on your question and responds with their specialized expertise!*
+
+### 🧠 Advanced Memory & Analysis
 - 💬 **Cross-mode conversation memory**: Seamlessly remembers discussions across both modes
-- 👤 **Profile management**: Create profiles with background information (student, professional, etc.) for personalized responses
-- 🎯 **Context-aware responses**: AI adapts advice based on your living situation and background
-- � **Enhanced context window**: Up to 20 recent exchanges for better conversation continuity
+- 🎯 **Context-aware responses**: AI adapts to your mood and needs (offers support if you look sad/stressed in videos)
+- 📊 **Ultra-detailed media analysis**: Comprehensive breakdown of your environment, belongings, and activities
+- ⏰ **Time-tracking**: Monitors changes in your space and habits over time
+- 📊 **Enhanced context window**: Up to 20 recent exchanges for better conversation continuity
 
-### 🖼️ Multimodal Capabilities  
+### 🖼️ Multimodal Capabilities with Optional Context
 - 📷 **Webcam integration**: Capture photos directly in-browser for instant analysis
-- 🎥 **Video recording**: Record and analyze videos with comprehensive environmental assessment
+- 🎥 **Video recording with optional context**: Record videos and optionally add text descriptions for targeted analysis
 - 📁 **File uploads**: Upload images and videos for detailed analysis
 - 🎤 **Voice input**: Record voice messages with automatic transcription and environmental audio analysis
-- 🔍 **Detailed analysis**: Object recognition, meal planning, safety assessment, and resource optimization
+- � **Video context feature**: After recording, add optional text context like "Review my presentation skills" or "Check my cooking technique"
+- 🏷️ **Smart tagging**: Visual confirmation when video is saved with optional description field
 
 ### 🎨 Professional Interface
 - 🎯 **Modern UI**: Clean, responsive design with smooth animations

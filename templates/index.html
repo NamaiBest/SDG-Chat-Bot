@@ -36,22 +36,11 @@
                 <button id="start-chat">Start Learning</button>
             </div>
             
-            <div class="profile-section" id="assistant-input" style="display: none;">
-                <div class="profile-selection" id="existing-profiles" style="display: none;">
-                    <label for="profile-select">Select your profile:</label>
-                    <select id="profile-select">
-                        <option value="">Choose existing profile...</option>
-                    </select>
-                    <button id="select-profile">Continue with Profile</button>
-                    <div class="profile-divider">
-                        <span>or</span>
-                    </div>
-                </div>
-                <div class="new-profile-section">
-                    <label for="new-username">Create new profile:</label>
-                    <input type="text" id="new-username" placeholder="Enter your name..." required>
-                    <button id="create-profile">Create Profile</button>
-                </div>
+            <div class="name-input-section" id="assistant-input" style="display: none;">
+                <label for="assistant-username">Hey there! What's your name?</label>
+                <input type="text" id="assistant-username" placeholder="Enter your name (e.g., Bob)..." required>
+                <p class="persona-description">🎭 Meet your AI personas: Chef You 👨‍🍳, Teacher You 👨‍🏫, Tech You 👨‍💻, Motivation You 💪, Finance You 💰, and Knowledge You 🧠!</p>
+                <button id="start-assistant-chat">Start Multi-Persona Chat</button>
             </div>
         </div>
 
@@ -85,6 +74,20 @@
                 <img id="preview-image" alt="Preview image" style="display: none;">
                 <video id="preview-video" controls style="display: none;"></video>
                 <p id="media-note" class="media-note">✅ Media ready! Ask me questions about what you see.</p>
+                <!-- Optional context for video uploads (shown only for videos) -->
+                <div id="video-context-wrap" class="video-context-wrap" style="display: none;">
+                    <div id="video-saved-tag" class="video-saved-tag" style="display: none; margin-bottom: 6px;">
+                        <span>🎥 Video saved. (Optional: add a description below)</span>
+                    </div>
+                    <div class="video-context-header">
+                        <label for="video-context" class="video-context-label">Add context for your video (optional):</label>
+                        <button type="button" id="clear-video" class="clear-video-btn" title="Clear video">×</button>
+                    </div>
+                    <div class="video-preview-small">
+                        <video id="small-video-preview" muted autoplay loop style="width: 120px; height: 80px; border-radius: 8px; object-fit: cover;"></video>
+                    </div>
+                    <input type="text" id="video-context" class="video-context-input" placeholder="e.g., Review my presentation delivery, focus on body language and clarity" autocomplete="off">
+                </div>
             </div>
         </div>
         
@@ -118,7 +121,7 @@
                     <input type="file" id="file-upload" accept="image/*,video/*" style="display: none;">
                     <button type="button" id="clear-media" class="media-btn-inline clear-btn" style="display: none;">🗑️</button>
                 </div>
-                <input type="text" id="user-input" placeholder="Type your question here (with or without media)..." autocomplete="off" required>
+                <input type="text" id="user-input" placeholder="Type your question here (with or without media)..." autocomplete="off">
                 <button type="button" id="mic-btn" class="mic-btn" title="Record audio message">
                     🎤
                 </button>

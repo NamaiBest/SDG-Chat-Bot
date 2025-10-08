@@ -11,20 +11,11 @@ const mainTitle = document.getElementById('main-title');
 const mainSubtitle = document.getElementById('main-subtitle');
 const backToMainBtn = document.getElementById('back-to-main');
 
-// Profile elements
+// Input elements
 const sustainabilityInput = document.getElementById('sustainability-input');
 const assistantInput = document.getElementById('assistant-input');
-const existingProfiles = document.getElementById('existing-profiles');
-const profileSelect = document.getElementById('profile-select');
-const selectProfileBtn = document.getElementById('select-profile');
-const newUsernameInput = document.getElementById('new-username');
-const profileBackgroundInput = document.getElementById('profile-background');
-const livingSituationSelect = document.getElementById('living-situation');
-const createProfileBtn = document.getElementById('create-profile');
-const profileModal = document.getElementById('profile-modal');
-const modalClose = document.getElementById('modal-close');
-const skipDetailsBtn = document.getElementById('skip-details');
-const saveAndStartBtn = document.getElementById('save-and-start');
+const assistantUsernameInput = document.getElementById('assistant-username');
+const startAssistantChatBtn = document.getElementById('start-assistant-chat');
 
 // Debug: Check if elements are found
 console.log('DOM elements check:');
@@ -49,6 +40,10 @@ const mediaPreviewContainer = document.getElementById('media-preview-container')
 const previewImage = document.getElementById('preview-image');
 const previewVideo = document.getElementById('preview-video');
 const mediaNote = document.getElementById('media-note');
+const videoContextWrap = document.getElementById('video-context-wrap');
+const videoContextInput = document.getElementById('video-context');
+const clearVideoBtn = document.getElementById('clear-video');
+const smallVideoPreview = document.getElementById('small-video-preview');
 const recordingStatus = document.getElementById('recording-status');
 const recordingTimer = document.getElementById('recording-timer');
 
@@ -67,7 +62,7 @@ let isCameraOn = false;
 
 // Mode state
 let isPersonalAssistantMode = false;
-let environmentMemory = [];
+// Environment memory now handled by backend detailed memory system
 let isRecording = false;
 let mediaRecorder = null;
 let recordedChunks = [];
@@ -102,13 +97,13 @@ async function toggleCamera() {
         }
         
         // Get camera stream
-        cameraStream = await navigator.mediaDevices.getUserMedia({ 
+            cameraStream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
                 width: { ideal: 640 }, 
                 height: { ideal: 480 },
                 facingMode: 'user'
             },
-            audio: true
+                audio: false
         });
         
         // Show camera overlay
@@ -221,6 +216,18 @@ function removeCornerMedia() {
     mediaPreviewCorner.style.display = 'none';
     currentMediaData = null;
     currentMediaType = null;
+    // Hide video context area and tag if present
+    if (videoContextWrap) {
+        videoContextWrap.style.display = 'none';
+        const tag = document.getElementById('video-saved-tag');
+        if (tag) tag.style.display = 'none';
+    }
+    if (smallVideoPreview) {
+        smallVideoPreview.src = '';
+    }
+    if (videoContextInput) {
+        videoContextInput.value = '';
+    }
 }
 
 
@@ -230,13 +237,13 @@ async function recordVideo() {
         console.log('Opening camera for video recording...');
         
         // Get camera stream for video recording
-        const stream = await navigator.mediaDevices.getUserMedia({ 
+            const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
                 width: { ideal: 640 }, 
                 height: { ideal: 480 },
                 facingMode: 'user'
             },
-            audio: false
+                audio: true
         });
         
         // Show camera preview with start recording option
@@ -411,25 +418,49 @@ function showRecordingCompleted(overlay, stream) {
     
     // Wait a moment for video processing to complete
     setTimeout(() => {
-        // Send video button
+        // Send video button - store video and show only context input
         document.getElementById('send-video-btn').onclick = () => {
             const getVideoData = window.currentRecordedVideo;
             if (getVideoData && getVideoData()) {
                 // Stop camera stream
                 stream.getTracks().forEach(track => track.stop());
                 document.body.removeChild(overlay);
-                sendVideoToGemini(getVideoData());
+
+                // Store video data but don't show full media preview
+                currentMediaData = getVideoData();
+                currentMediaType = 'video';
+
+                // Show video in corner preview so user can see it was recorded
+                showCornerPreview(currentMediaData, 'video');
+
+                // Show only the video context input at the bottom
+                if (videoContextWrap) {
+                    videoContextWrap.style.display = 'block';
+                    // Show the tag
+                    const tag = document.getElementById('video-saved-tag');
+                    if (tag) tag.style.display = 'flex';
+                    // Show the recorded video in the small preview
+                    if (smallVideoPreview) {
+                        smallVideoPreview.src = currentMediaData;
+                    }
+                    if (videoContextInput) {
+                        videoContextInput.value = '';
+                        videoContextInput.placeholder = "(Optional) Add a description/context for this video...";
+                        videoContextInput.required = false;
+                        videoContextInput.focus();
+                    }
+                }
             } else {
                 alert('Video not ready yet, please wait a moment and try again');
             }
         };
-        
+
         // Re-record button
         document.getElementById('rerecord-btn').onclick = () => {
             document.body.removeChild(overlay);
             startVideoRecording(stream);
         };
-        
+
         // Cancel button
         document.getElementById('cancel-video-btn').onclick = () => {
             // Stop camera stream
@@ -537,6 +568,9 @@ async function sendVideoToGemini(videoData) {
     chatWindow.scrollTop = chatWindow.scrollHeight;
     
     try {
+        // Get optional video context
+        const contextValue = (videoContextInput && videoContextWrap && videoContextWrap.style.display !== 'none') ? (videoContextInput.value || '') : '';
+        
         const response = await fetch('/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -544,7 +578,9 @@ async function sendVideoToGemini(videoData) {
                 message: "Please analyze this video and provide insights related to sustainability, ethics, or environmental topics.",
                 username: currentUsername,
                 session_id: sessionId,
-                video: videoData
+                video: videoData,
+                video_context: contextValue,
+                mode: isPersonalAssistantMode ? 'personal-assistant' : 'sustainability'
             })
         });
         
@@ -552,9 +588,22 @@ async function sendVideoToGemini(videoData) {
         
         // Remove typing indicator
         chatWindow.removeChild(typingDiv);
-        
+
         appendMessage('bot', data.reply);
-        
+
+        // After sending, hide optional context UI and reset
+        if (videoContextWrap) {
+            videoContextWrap.style.display = 'none';
+            const tag = document.getElementById('video-saved-tag');
+            if (tag) tag.style.display = 'none';
+        }
+        if (smallVideoPreview) {
+            smallVideoPreview.src = '';
+        }
+        if (videoContextInput) {
+            videoContextInput.value = '';
+        }
+
         if (data.session_id) {
             sessionId = data.session_id;
             localStorage.setItem('sdg_session_id', sessionId);
@@ -643,15 +692,42 @@ function showMediaPreview(mediaSrc, type) {
     mediaPreviewContainer.style.display = 'block';
     clearMediaBtn.style.display = 'inline-block';
     
+    // Check if we're in personal assistant mode
+    const isPersonalAssistant = document.getElementById('mode-toggle').checked;
+    
     if (type === 'image') {
         previewImage.src = typeof mediaSrc === 'string' ? mediaSrc : URL.createObjectURL(mediaSrc);
         previewImage.style.display = 'block';
-        mediaNote.textContent = '✅ Image ready! Ask me questions about what you see.';
+        
+        // Hide video context for images
+        if (videoContextWrap) {
+            videoContextWrap.style.display = 'none';
+            if (videoContextInput) videoContextInput.value = '';
+        }
+        
+        if (isPersonalAssistant) {
+            mediaNote.innerHTML = '✅ Image ready! <strong>💡 Tip:</strong> Add specific context to your message for better analysis (e.g., "Check my form", "Analyze the cooking technique", "What\'s wrong with this setup?").';
+        } else {
+            mediaNote.textContent = '✅ Image ready! Ask me questions about what you see.';
+        }
     } else if (type === 'video') {
         previewVideo.src = typeof mediaSrc === 'string' ? mediaSrc : URL.createObjectURL(mediaSrc);
         previewVideo.style.display = 'block';
-        mediaNote.textContent = '✅ Video ready! Ask me questions about what you see.';
+        
+        // Show video context input for videos
+        if (videoContextWrap) {
+            videoContextWrap.style.display = 'block';
+        }
+        
+        if (isPersonalAssistant) {
+            mediaNote.innerHTML = '✅ Video ready! <strong>💡 Tip:</strong> Add specific context to your message for better analysis (e.g., "Review my presentation skills", "Analyze the workout form", "What can I improve?").';
+        } else {
+            mediaNote.textContent = '✅ Video ready! Ask me questions about what you see.';
+        }
     }
+    
+    // Update input placeholder to reflect media context capability
+    updateInputPlaceholder();
 }
 
 function hideMediaPreview() {
@@ -659,6 +735,31 @@ function hideMediaPreview() {
     previewImage.style.display = 'none';
     previewVideo.style.display = 'none';
     clearMediaBtn.style.display = 'none';
+    
+    // Hide and clear video context input
+    if (videoContextWrap) {
+        videoContextWrap.style.display = 'none';
+        if (videoContextInput) videoContextInput.value = '';
+        if (smallVideoPreview) smallVideoPreview.src = '';
+    }
+    
+    updateInputPlaceholder();
+}
+
+function updateInputPlaceholder() {
+    const userInput = document.getElementById('user-input');
+    const isPersonalAssistant = document.getElementById('mode-toggle').checked;
+    const hasMedia = currentMediaData !== null;
+    
+    if (hasMedia && isPersonalAssistant) {
+        userInput.placeholder = 'Add context for analysis (e.g., "Check my form", "Review technique", "What can I improve?")...';
+    } else if (hasMedia) {
+        userInput.placeholder = 'Ask questions about your media...';
+    } else if (isPersonalAssistant) {
+        userInput.placeholder = 'Chat with your AI personas or upload media for analysis...';
+    } else {
+        userInput.placeholder = 'Type your question here (with or without media)...';
+    }
 }
 
 function stopCamera() {
@@ -683,6 +784,18 @@ function clearMedia() {
     currentMediaData = null;
     currentMediaType = null;
     hideMediaPreview();
+    // Also hide any video context UI and reset
+    if (videoContextWrap) {
+        videoContextWrap.style.display = 'none';
+        const tag = document.getElementById('video-saved-tag');
+        if (tag) tag.style.display = 'none';
+    }
+    if (smallVideoPreview) {
+        smallVideoPreview.src = '';
+    }
+    if (videoContextInput) {
+        videoContextInput.value = '';
+    }
     
     // Revoke object URLs to prevent memory leaks
     if (previewImage.src.startsWith('blob:')) {
@@ -796,6 +909,50 @@ function startChat() {
     
     userInput.focus();
     console.log('startChat function completed');
+}
+
+function startAssistantChat() {
+    console.log('startAssistantChat function called!');
+    const username = assistantUsernameInput.value.trim();
+    console.log('Username entered:', username);
+    if (!username) {
+        console.log('No username entered, focusing input');
+        assistantUsernameInput.focus();
+        return;
+    }
+    
+    console.log('Setting username for multi-persona assistant...');
+    currentUsername = username;
+    
+    // Update header message for assistant mode
+    const headerMessage = document.getElementById('header-message');
+    if (headerMessage) {
+        headerMessage.textContent = `Hello ${username}! Your AI personas are ready to help!`;
+        console.log('Updated header message for assistant mode');
+    }
+    
+    localStorage.setItem('sdg_username', username);
+    
+    console.log('Showing chat interface...');
+    showChatInterface();
+    
+    console.log('Setting up multi-persona welcome message...');
+    // Multi-persona welcome message
+    setTimeout(() => {
+        const welcomeMsg = `🎭 Hey ${username}! Your Multi-Persona AI Team is here!\n\n` +
+            `👨‍🍳 **Chef ${username}**: "Ready to cook up something delicious!"\n` +
+            `👨‍🏫 **Teacher ${username}**: "Let's learn something new together!"\n` +
+            `👨‍💻 **Tech ${username}**: "Got tech questions? I'm your guy!"\n` +
+            `💪 **Motivation ${username}**: "Let's crush those goals!"\n` +
+            `💰 **Finance ${username}**: "Time to get those finances sorted!"\n` +
+            `🧠 **Knowledge ${username}**: "Curious about anything? Ask away!"\n\n` +
+            `Just ask your question and the right persona will jump in to help! 🚀`;
+        
+        appendMessage('bot', welcomeMsg);
+    }, 500);
+    
+    userInput.focus();
+    console.log('startAssistantChat function completed');
 }
 
 function showChatInterface() {
@@ -1128,7 +1285,7 @@ async function startAudioRecording() {
                             username: currentUsername,
                             session_id: sessionId,
                             mode: isPersonalAssistantMode ? 'personal-assistant' : 'sustainability',
-                            environment_memory: isPersonalAssistantMode ? formatMemoryForAI(environmentMemory) : []
+
                         })
                     });
                     
@@ -1145,7 +1302,7 @@ async function startAudioRecording() {
                             message += `\n🔊 Audio Context: ${result.environmental_context}`;
                             
                             // Update environment memory with audio context
-                            updateEnvironmentMemoryFromAudio(result.environmental_context);
+                            // Environment memory now handled by backend
                         }
                         
                         showTemporaryMessage(message, '#4caf50');
@@ -1274,6 +1431,7 @@ function showTemporaryMessage(text, color) {
 console.log('Setting up event listeners');
 console.log('startChatBtn found:', startChatBtn);
 startChatBtn.addEventListener('click', startChat);
+startAssistantChatBtn.addEventListener('click', startAssistantChat);
 toggleCameraBtn.addEventListener('click', toggleCamera);
 recordVideoBtn.addEventListener('click', recordVideo);
 captureImageBtn.addEventListener('click', captureImage);
@@ -1281,6 +1439,72 @@ clearMediaBtn.addEventListener('click', clearMedia);
 fileUploadInput.addEventListener('change', handleFileUpload);
 micBtn.addEventListener('click', toggleAudioRecording);
 backToMainBtn.addEventListener('click', goBackToMain);
+
+// Clear video button event listener
+if (clearVideoBtn) {
+    clearVideoBtn.addEventListener('click', () => {
+        // Clear video data
+        currentMediaData = null;
+        currentMediaType = null;
+        
+        // Hide video context wrap
+        if (videoContextWrap) {
+            videoContextWrap.style.display = 'none';
+            const tag = document.getElementById('video-saved-tag');
+            if (tag) tag.style.display = 'none';
+        }
+        
+        // Clear video context input
+        if (videoContextInput) {
+            videoContextInput.value = '';
+        }
+        
+        // Clear small video preview
+        if (smallVideoPreview) {
+            smallVideoPreview.src = '';
+        }
+        
+        console.log('Video cleared');
+    });
+}
+
+// Add event listener for clear video button
+if (clearVideoBtn) {
+    clearVideoBtn.addEventListener('click', () => {
+        // Clear video data and hide context input
+        currentMediaData = null;
+        currentMediaType = null;
+        if (videoContextWrap) {
+            videoContextWrap.style.display = 'none';
+            const tag = document.getElementById('video-saved-tag');
+            if (tag) tag.style.display = 'none';
+            if (videoContextInput) videoContextInput.value = '';
+        }
+        
+        // Show confirmation
+        const tempMessage = document.createElement('div');
+        tempMessage.style.cssText = `
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #666;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            z-index: 10002;
+            font-size: 0.9em;
+        `;
+        tempMessage.textContent = 'Video cleared';
+        document.body.appendChild(tempMessage);
+        
+        setTimeout(() => {
+            if (document.body.contains(tempMessage)) {
+                document.body.removeChild(tempMessage);
+            }
+        }, 2000);
+    });
+}
 
 // New camera overlay event listeners
 captureConfirmBtn.addEventListener('click', captureFromOverlay);
@@ -1295,13 +1519,20 @@ usernameInput.addEventListener('keypress', (e) => {
 chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const message = userInput.value.trim();
-    if (!message) return;
+    // Allow empty message if a recorded/uploaded video or image exists
+    if (!message && !currentMediaData) return;
     
     // Stop any ongoing speech when sending a new message
     stopSpeaking();
     
-    appendMessage('user', message);
-    userInput.value = '';
+    if (message) {
+        appendMessage('user', message);
+        userInput.value = '';
+    } else if (currentMediaData && currentMediaType === 'video') {
+        appendMessage('user', '🎥 Sent a video');
+    } else if (currentMediaData && currentMediaType === 'image') {
+        appendMessage('user', '🖼️ Sent an image');
+    }
     
     // Show typing indicator
     const typingDiv = document.createElement('div');
@@ -1311,20 +1542,11 @@ chatForm.addEventListener('submit', async (e) => {
     chatWindow.scrollTop = chatWindow.scrollHeight;
     
     try {
-        const formattedMemory = isPersonalAssistantMode ? formatMemoryForAI(environmentMemory) : [];
-        
-        // Get current profile for background context
-        const userProfiles = getStoredProfiles();
-        const userProfile = userProfiles.find(p => p.username === currentUsername);
-        
         const requestData = { 
             message, 
             username: currentUsername,
             session_id: sessionId,
-            mode: isPersonalAssistantMode ? 'personal-assistant' : 'sustainability',
-            environment_memory: formattedMemory,
-            profile_background: userProfile?.background || '',
-            living_situation: userProfile?.livingSituation || ''
+            mode: isPersonalAssistantMode ? 'personal-assistant' : 'sustainability'
         };
         
         // Debug logging
@@ -1332,12 +1554,7 @@ chatForm.addEventListener('submit', async (e) => {
             mode: requestData.mode,
             isPersonalAssistantMode,
             currentUsername,
-            sessionId,
-            environmentMemoryLength: environmentMemory.length,
-            formattedMemoryLength: formattedMemory.length,
-            formattedMemorySample: formattedMemory.slice(0, 2),
-            profileBackground: userProfile?.background || 'None',
-            livingSituation: userProfile?.livingSituation || 'None'
+            sessionId
         });
         
         // Add media data if available
@@ -1346,6 +1563,10 @@ chatForm.addEventListener('submit', async (e) => {
                 requestData.image = currentMediaData;
             } else if (currentMediaType === 'video') {
                 requestData.video = currentMediaData;
+                // Include optional video context if provided
+                if (videoContextInput && videoContextWrap && videoContextWrap.style.display !== 'none' && videoContextInput.value.trim()) {
+                    requestData.video_context = videoContextInput.value.trim();
+                }
             }
         }
         
@@ -1361,10 +1582,10 @@ chatForm.addEventListener('submit', async (e) => {
         
         appendMessage('bot', data.reply);
         
-        // Update environment memory in Personal Assistant mode
-        if (isPersonalAssistantMode && currentMediaData && data.reply) {
-            updateEnvironmentMemory(data.reply, currentMediaType, message);
-        }
+        // Clear media and optional context UI after successful send
+        clearMedia();
+        const tag = document.getElementById('video-saved-tag');
+        if (tag) tag.style.display = 'none';
         
         // Update session ID if new one was created
         if (data.session_id) {
@@ -1547,6 +1768,12 @@ function toggleMode() {
         sustainabilityInput.style.display = 'block';
         assistantInput.style.display = 'none';
         localStorage.setItem('sdg_chat_mode', 'sustainability');
+    }
+    
+    // Update input placeholder if chat interface is active
+    const chatInterface = document.getElementById('chat-interface');
+    if (chatInterface.style.display !== 'none') {
+        updateInputPlaceholder();
     }
     
     console.log('Mode switched to:', isPersonalAssistantMode ? 'Personal Assistant' : 'Sustainability Teacher');
