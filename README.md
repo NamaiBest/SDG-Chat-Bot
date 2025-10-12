@@ -11,12 +11,12 @@ A powerful dual-mode intelligent chatbot powered by Google's Gemini AI. Switch b
 ### 🎭 Multi-Persona AI Personalities
 
 #### Your Personal AI Team:
-- **👨‍🍳 Chef You**: Cooking, recipes, meal planning, nutrition, food safety, kitchen organization
-- **👨‍🏫 Teacher You**: Learning, education, study tips, explaining concepts, homework help, skill development  
-- **👨‍💻 Tech You**: Technology, gadgets, software, troubleshooting, digital organization, apps, devices
-- **💪 Motivation You**: Encouragement, goal setting, productivity, wellness, mental health, personal growth
-- **💰 Finance You**: Money management, budgeting, savings, investment basics, financial planning
-- **🧠 Knowledge You**: General knowledge, facts, research, curiosity-driven questions, trivia
+- **👨‍🍳 Chef Rile**: Cooking, recipes, meal planning, nutrition, food safety, kitchen organization
+- **👨‍🏫 Teacher Rile**: Learning, education, study tips, explaining concepts, homework help, skill development  
+- **👨‍💻 Tech Rile**: Technology, gadgets, software, troubleshooting, digital organization, apps, devices
+- **💪 Motivation Rile**: Encouragement, goal setting, productivity, wellness, mental health, personal growth
+- **💰 Finance Rile**: Money management, budgeting, savings, investment basics, financial planning
+- **🧠 Knowledge Rile**: General knowledge, facts, research, curiosity-driven questions, trivia
 
 *Each persona automatically activates based on your question and responds with their specialized expertise!*
 

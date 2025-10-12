@@ -365,6 +365,11 @@ function startVideoRecording(stream) {
 
 // Show options after recording is complete
 function showRecordingCompleted(overlay, stream) {
+    // Clear countdown timer if it exists
+    if (overlay.countdownInterval) {
+        clearInterval(overlay.countdownInterval);
+    }
+    
     const container = overlay.querySelector('div');
     
     // Replace only the recording status and button, keep the video preview
@@ -497,15 +502,33 @@ function showRecordingUI(mediaRecorder, stream, getVideoData) {
     
     recordingOverlay.innerHTML = `
         <div style="text-align: center;">
-            <video id="recording-preview" autoplay muted playsinline style="
-                width: 480px;
-                height: 360px;
-                border-radius: 15px;
-                margin-bottom: 20px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            "></video>
+            <div style="position: relative; display: inline-block; margin-bottom: 20px;">
+                <video id="recording-preview" autoplay muted playsinline style="
+                    width: 480px;
+                    height: 360px;
+                    border-radius: 15px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                "></video>
+                <div id="countdown-timer" style="
+                    position: absolute;
+                    bottom: 15px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(255, 255, 255, 0.95);
+                    color: #2c5530;
+                    padding: 6px 16px;
+                    border-radius: 20px;
+                    font-size: 1.1em;
+                    font-weight: bold;
+                    font-family: monospace;
+                    border: 2px solid #4caf50;
+                    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+                    backdrop-filter: blur(10px);
+                    z-index: 10;
+                ">30s</div>
+            </div>
             <div style="font-size: 1.5em; margin-bottom: 30px; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                <div style="width: 12px; height: 12px; background: #ff4444; border-radius: 50%; animation: pulse 1s infinite;"></div>
+                <div style="width: 12px; height: 12px; background: #4caf50; border-radius: 50%; animation: pulse 1s infinite;"></div>
                 Recording Video...
             </div>
             <button id="stop-recording-btn" style="
@@ -528,6 +551,46 @@ function showRecordingUI(mediaRecorder, stream, getVideoData) {
     const videoPreview = document.getElementById('recording-preview');
     videoPreview.srcObject = stream;
     
+    // Countdown timer functionality
+    let timeLeft = 30;
+    const countdownElement = document.getElementById('countdown-timer');
+    console.log('Countdown element found:', countdownElement); // Debug log
+    
+    if (!countdownElement) {
+        console.error('Countdown timer element not found!');
+        return;
+    }
+    
+    let countdownInterval = setInterval(() => {
+        timeLeft--;
+        countdownElement.textContent = `${timeLeft}s`;
+        console.log('Countdown updated:', timeLeft); // Debug log
+        
+        // Change color when time is running out
+        if (timeLeft <= 10) {
+            countdownElement.style.border = '2px solid #ff9800';
+            countdownElement.style.background = 'rgba(255, 152, 0, 0.1)';
+            countdownElement.style.color = '#e65100';
+        }
+        if (timeLeft <= 5) {
+            countdownElement.style.border = '2px solid #f44336';
+            countdownElement.style.background = 'rgba(244, 67, 54, 0.1)';
+            countdownElement.style.color = '#c62828';
+            countdownElement.style.animation = 'pulse 0.5s infinite';
+        }
+        
+        // Auto-stop recording when timer reaches 0
+        if (timeLeft <= 0) {
+            clearInterval(countdownInterval);
+            console.log('Recording time limit reached - auto stopping');
+            mediaRecorder.stop();
+            showRecordingCompleted(recordingOverlay, stream);
+        }
+    }, 1000);
+    
+    // Store interval ID for cleanup
+    recordingOverlay.countdownInterval = countdownInterval;
+    
     // Add pulsing animation for recording dot
     if (!document.getElementById('pulse-style')) {
         const style = document.createElement('style');
@@ -546,7 +609,13 @@ function showRecordingUI(mediaRecorder, stream, getVideoData) {
     
     // Stop recording button
     document.getElementById('stop-recording-btn').onclick = () => {
-        console.log('Stopping recording');
+        console.log('Stopping recording manually');
+        
+        // Clear countdown timer
+        if (recordingOverlay.countdownInterval) {
+            clearInterval(recordingOverlay.countdownInterval);
+        }
+        
         mediaRecorder.stop();
         
         // Show recording completed options
@@ -939,13 +1008,13 @@ function startAssistantChat() {
     console.log('Setting up multi-persona welcome message...');
     // Multi-persona welcome message
     setTimeout(() => {
-        const welcomeMsg = `🎭 Hey ${username}! Your Multi-Persona AI Team is here!\n\n` +
-            `👨‍🍳 **Chef ${username}**: "Ready to cook up something delicious!"\n` +
-            `👨‍🏫 **Teacher ${username}**: "Let's learn something new together!"\n` +
-            `👨‍💻 **Tech ${username}**: "Got tech questions? I'm your guy!"\n` +
-            `💪 **Motivation ${username}**: "Let's crush those goals!"\n` +
-            `💰 **Finance ${username}**: "Time to get those finances sorted!"\n` +
-            `🧠 **Knowledge ${username}**: "Curious about anything? Ask away!"\n\n` +
+        const welcomeMsg = `🎭 Hey ${username}! Rile here, your Multi-Persona AI assistant is here!\n\n` +
+            `👨‍🍳 **Chef Rile**: "Ready to cook up something delicious!"\n` +
+            `👨‍🏫 **Teacher Rile**: "Let's learn something new together!"\n` +
+            `👨‍💻 **Tech Rile**: "Got tech questions? I'm your guy!"\n` +
+            `💪 **Motivation Rile**: "Let's crush those goals!"\n` +
+            `💰 **Finance Rile**: "Time to get those finances sorted!"\n` +
+            `🧠 **Knowledge Rile**: "Curious about anything? Ask away!"\n\n` +
             `Just ask your question and the right persona will jump in to help! 🚀`;
         
         appendMessage('bot', welcomeMsg);
@@ -955,7 +1024,7 @@ function startAssistantChat() {
     console.log('startAssistantChat function completed');
 }
 
-function showChatInterface() {
+async function showChatInterface() {
     console.log('showChatInterface called for user:', currentUsername);
     
     // Update display name if element exists
@@ -982,16 +1051,18 @@ function showChatInterface() {
         backToMainBtn.style.display = 'block';
     }
     
-    // Load conversation history
-    loadConversationHistory();
+    // Load conversation history first
+    const hasHistory = await loadConversationHistory();
     
-    // Welcome message
-    setTimeout(() => {
-        const welcomeMessage = isPersonalAssistantMode 
-            ? `🤖 Welcome back, ${currentUsername}! I remember our previous sessions. How can I help you analyze your environment today?`
-            : `👋 Welcome back, ${currentUsername}! I remember our previous conversations. What would you like to learn about today?`;
-        appendMessage('bot', welcomeMessage);
-    }, 500);
+    // Only show welcome message if no previous conversation history
+    if (!hasHistory) {
+        setTimeout(() => {
+            const welcomeMessage = isPersonalAssistantMode 
+                ? `🤖 Hello ${currentUsername}! I'm Rile, your multi-persona AI assistant. How can I help you today?`
+                : `👋 Hello ${currentUsername}! I'm Rile, your sustainability teacher. What would you like to learn about today?`;
+            appendMessage('bot', welcomeMessage);
+        }, 500);
+    }
     
     userInput.focus();
     console.log('showChatInterface completed');
@@ -1069,11 +1140,14 @@ async function loadConversationHistory() {
                 appendMessage('user', userMessage, false);
                 appendMessage('bot', botMessage, false);
             });
+            return true; // Found conversation history
         } else {
             console.log('No previous conversation history found');
+            return false; // No conversation history
         }
     } catch (error) {
         console.log('Error loading conversation history:', error);
+        return false; // Error, treat as no history
     }
 }
 
