@@ -111,14 +111,67 @@ def get_personal_assistant_prompt(username):
     
     intro_text = "\n".join(intro_lines)
     
-    # Build the personas section
+    # Build the personas section with rubrics
     persona_descriptions = []
+    persona_rubrics = []
     for persona_key, persona_data in assistant_personas.items():
         persona_name = persona_data.get("persona_name", "Unknown").upper()
         prompt_template = persona_data.get("prompt_template", "General assistance")
         persona_descriptions.append(f"{persona_name}: {prompt_template}")
+        
+        # Add rubric guidelines if available
+        if "rubric" in persona_data:
+            rubric = persona_data["rubric"]
+            rubric_text = f"\n\n{persona_name} BEHAVIORAL RUBRIC:\n"
+            
+            # Core principles
+            if "core_principles" in rubric:
+                rubric_text += "CORE PRINCIPLES:\n"
+                for principle, guideline in rubric["core_principles"].items():
+                    rubric_text += f"- {principle.replace('_', ' ').title()}: {guideline}\n"
+            
+            # Emotional awareness
+            if "emotional_awareness_guidelines" in rubric:
+                rubric_text += "\nEMOTIONAL AWARENESS:\n"
+                for situation, rules in rubric["emotional_awareness_guidelines"].items():
+                    rubric_text += f"\n{situation.replace('_', ' ').title()}:\n"
+                    if "DO" in rules:
+                        rubric_text += "DO: " + "; ".join(rules["DO"]) + "\n"
+                    if "DO_NOT" in rules:
+                        rubric_text += "DO NOT: " + "; ".join(rules["DO_NOT"]) + "\n"
+            
+            # Response structure
+            if "response_structure" in rubric:
+                rubric_text += "\nRESPONSE STRUCTURE:\n"
+                structure = rubric["response_structure"]
+                if "opening" in structure:
+                    rubric_text += f"Opening: {structure['opening'].get('example', '')} - {structure['opening'].get('emotional_acknowledgment', '')}\n"
+                if "body" in structure:
+                    rubric_text += f"Body: Focus on {structure['body'].get('focus', 'user request')}\n"
+                if "closing" in structure:
+                    rubric_text += f"Closing: {structure['closing'].get('example', '')}\n"
+            
+            # Communication patterns
+            if "communication_patterns" in rubric:
+                rubric_text += "\nCOMMUNICATION PATTERNS:\n"
+                for pattern_name, pattern_rules in rubric["communication_patterns"].items():
+                    if "rule" in pattern_rules:
+                        rubric_text += f"- {pattern_name.replace('_', ' ').title()}: {pattern_rules['rule']}\n"
+                    if "example_correct" in pattern_rules:
+                        rubric_text += f"  ✓ Correct: {pattern_rules['example_correct']}\n"
+                    if "example_wrong" in pattern_rules:
+                        rubric_text += f"  ✗ Wrong: {pattern_rules['example_wrong']}\n"
+            
+            # Key differentiators
+            if "key_differentiators" in rubric:
+                rubric_text += "\nKEY DIFFERENTIATORS:\n"
+                for key, value in rubric["key_differentiators"].items():
+                    rubric_text += f"- {key.replace('_', ' ').title()}: {value}\n"
+            
+            persona_rubrics.append(rubric_text)
     
     personas_text = "\n".join(persona_descriptions)
+    rubrics_text = "\n".join(persona_rubrics)
     
     # Build persona examples
     example_lines = []
@@ -140,6 +193,7 @@ def get_personal_assistant_prompt(username):
         "CRITICAL: Your name is Rile in all personas. Always say 'Chef Rile here!' or 'Tech Rile speaking!' - never forget your name is Rile. "
         "YOUR PERSONAS: "
         f"{personas_text} "
+        f"{rubrics_text} "
         "PERSONA SELECTION RULES: "
         "- Cooking/food/kitchen queries -> Chef Rile responds "
         "- Learning/education/study queries -> Teacher Rile responds "
