@@ -9,6 +9,14 @@ from datetime import datetime
 import uuid
 import glob
 
+# Import database functions
+from database import (
+    save_conversation,
+    load_conversation,
+    get_conversation_context,
+    init_database
+)
+
 # Get API key from environment variable (for deployment) or fallback to local config
 try:
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -25,10 +33,8 @@ app = FastAPI()
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 GEMINI_MODEL = "gemini-2.5-flash"  # Stable model that works with both v1beta and v1
 
-app = FastAPI()
-
-GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
-GEMINI_MODEL = "gemini-2.5-flash"  # Stable model that works with both v1beta and v1
+# Initialize database on startup
+init_database()
 
 # Persona Management
 PERSONAS_DIR = "personas"
@@ -375,100 +381,8 @@ Previous analysis: {gemini_response}
         print(f"[ERROR] Error extracting memory: {e}")
         return None
 
-def save_conversation(session_id, username, message, response, has_media=False, media_type=None, mode="sustainability", detailed_memory=None):
-    """Save conversation to memory with detailed media analysis"""
-    try:
-        memory_subdir = "personal_assistant" if mode == "personal-assistant" else "sustainability"
-        mode_memory_dir = os.path.join(MEMORY_DIR, memory_subdir)
-        if not os.path.exists(mode_memory_dir):
-            os.makedirs(mode_memory_dir)
-        file_path = os.path.join(mode_memory_dir, f"{session_id}.json")
-        conversation_data = {
-            "username": username,
-            "mode": mode,
-            "messages": [],
-            "detailed_memories": []
-        }
-        if os.path.exists(file_path):
-            with open(file_path, 'r', encoding='utf-8') as f:
-                conversation_data = json.load(f)
-        message_entry = {
-            "timestamp": datetime.now().isoformat(),
-            "user_message": message,
-            "bot_response": response,
-            "has_media": has_media,
-            "media_type": media_type
-        }
-        conversation_data["messages"].append(message_entry)
-        if detailed_memory and has_media:
-            if "detailed_memories" not in conversation_data:
-                conversation_data["detailed_memories"] = []
-            conversation_data["detailed_memories"].append(detailed_memory)
-            print(f"[MEMORY] Detailed memory extracted and saved for {media_type}")
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(conversation_data, f, indent=2, ensure_ascii=False)
-        print(f"[SUCCESS] Conversation saved to: {file_path}")
-        return True
-    except Exception as e:
-        print(f"[ERROR] Error saving conversation: {e}")
-        return False
-
-def load_conversation(session_id, mode="sustainability"):
-    """Load conversation from memory"""
-    try:
-        memory_subdir = "personal_assistant" if mode == "personal-assistant" else "sustainability"
-        mode_memory_dir = os.path.join(MEMORY_DIR, memory_subdir)
-        file_path = os.path.join(mode_memory_dir, f"{session_id}.json")
-        if os.path.exists(file_path):
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                print(f"[SUCCESS] Loaded conversation from: {file_path} - {len(data.get('messages', []))} messages")
-                return data
-        old_file_path = os.path.join(MEMORY_DIR, f"{session_id}.json")
-        if os.path.exists(old_file_path):
-            with open(old_file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                print(f"[SUCCESS] Loaded conversation from old location: {old_file_path}")
-                return data
-        print(f"[INFO] No conversation file found: {file_path}")
-        return None
-    except Exception as e:
-        print(f"[ERROR] Error loading conversation: {e}")
-        return None
-
-def get_conversation_context(session_id, mode="sustainability"):
-    """Get recent conversation history for better responses - includes cross-mode context"""
-    conversation = load_conversation(session_id, mode)
-    all_messages = []
-    if conversation and conversation.get("messages"):
-        all_messages.extend(conversation["messages"])
-        print(f"[SUCCESS] Loaded {len(conversation['messages'])} messages from {mode} mode")
-    if mode == "personal-assistant":
-        sustainability_conversation = load_conversation(session_id, "sustainability")
-        if sustainability_conversation and sustainability_conversation.get("messages"):
-            all_messages.extend(sustainability_conversation["messages"])
-            print(f"[SUCCESS] Loaded {len(sustainability_conversation['messages'])} messages from sustainability mode for cross-mode context")
-    if not all_messages:
-        print("[ERROR] No conversation history found")
-        return ""
-    try:
-        all_messages.sort(key=lambda x: x.get('timestamp', ''))
-    except Exception:
-        pass
-    recent_messages = all_messages[-20:]
-    print(f"[SUCCESS] Using {len(recent_messages)} recent messages for context")
-    context = "=== COMPLETE CONVERSATION HISTORY ===\n"
-    context += "Here's our complete conversation history across all modes so you can remember important details:\n\n"
-    for msg in recent_messages:
-        media_note = ""
-        if msg.get("has_media"):
-            m_type = msg.get("media_type", "media")
-            media_note = f" (with {m_type})"
-        context += f"User: {msg['user_message']}{media_note}\n"
-        context += f"You responded: {msg['bot_response']}\n\n"
-    context += "=== END CONVERSATION HISTORY ===\n"
-    context += "CRITICAL: You MUST reference specific details from this conversation history. Never say you don't have stored observations if there are messages above.\n"
-    return context
+# The save_conversation, load_conversation, and get_conversation_context functions
+# are now provided by the database module imported at the top of this file
 
 @app.get("/", response_class=HTMLResponse)
 def get_chat_page():
