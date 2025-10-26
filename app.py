@@ -14,7 +14,10 @@ from database import (
     save_conversation,
     load_conversation,
     get_conversation_context,
-    init_database
+    init_database,
+    register_user,
+    verify_login,
+    check_username_exists
 )
 
 # Get API key from environment variable (for deployment) or fallback to local config
@@ -390,6 +393,97 @@ def get_chat_page():
         html = f.read()
     return HTMLResponse(content=html)
 
+
+# ============================================
+# Authentication Endpoints
+# ============================================
+
+@app.post("/api/auth/check-username")
+async def check_username(request: Request):
+    """Check if username exists"""
+    try:
+        data = await request.json()
+        username = data.get("username", "").strip()
+        
+        if not username:
+            return JSONResponse({"error": "Username is required"}, status_code=400)
+        
+        exists = check_username_exists(username)
+        return JSONResponse({"exists": exists, "username": username})
+        
+    except Exception as e:
+        print(f"[ERROR] Check username error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/auth/register")
+async def auth_register(request: Request):
+    """Register a new user"""
+    try:
+        data = await request.json()
+        username = data.get("username", "").strip()
+        password = data.get("password", "").strip()
+        
+        if not username or not password:
+            return JSONResponse({"error": "Username and password are required"}, status_code=400)
+        
+        if len(password) < 6:
+            return JSONResponse({"error": "Password must be at least 6 characters"}, status_code=400)
+        
+        result = register_user(username, password)
+        
+        if result["success"]:
+            return JSONResponse({
+                "success": True,
+                "message": "Registration successful!",
+                "username": result["username"]
+            })
+        else:
+            return JSONResponse({"error": result["error"]}, status_code=400)
+            
+    except Exception as e:
+        print(f"[ERROR] Registration error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/auth/login")
+async def auth_login(request: Request):
+    """Login user"""
+    try:
+        data = await request.json()
+        username = data.get("username", "").strip()
+        password = data.get("password", "").strip()
+        
+        if not username or not password:
+            return JSONResponse({"error": "Username and password are required"}, status_code=400)
+        
+        result = verify_login(username, password)
+        
+        if result["success"]:
+            return JSONResponse({
+                "success": True,
+                "message": "Login successful!",
+                "username": result["username"]
+            })
+        else:
+            # Provide specific error messages
+            error_msg = result.get("error", "Invalid credentials")
+            if error_msg == "Username not found":
+                return JSONResponse({"error": "Username not registered"}, status_code=401)
+            elif error_msg == "Invalid password":
+                return JSONResponse({"error": "Incorrect password"}, status_code=401)
+            else:
+                return JSONResponse({"error": error_msg}, status_code=401)
+            
+    except Exception as e:
+        print(f"[ERROR] Login error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# ============================================
+# Model and Chat Endpoints
+# ============================================
+
 @app.get("/models")
 async def list_models():
     """List available Gemini models"""
@@ -439,7 +533,8 @@ async def chat(request: Request):
     print(f"[CHAT] User: {username}, Mode: {mode}, Media: {media_type}, Context: {video_context[:50] if video_context else 'None'}")
 
     system_prompt = get_personal_assistant_prompt(username) if mode == "personal-assistant" else get_sustainability_prompt(username)
-    context = get_conversation_context(session_id, mode)
+    # Use username instead of session_id to load user's complete history
+    context = get_conversation_context(username, mode)
 
     if context:
         if mode == "personal-assistant":
@@ -623,18 +718,20 @@ async def audio_to_text(request: Request):
         print(f"[ERROR] Exception in audio transcription: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
-@app.get("/conversation/{session_id}")
-async def get_conversation(session_id: str):
-    conversation = load_conversation(session_id, "sustainability")
+@app.get("/conversation/{username}")
+async def get_conversation(username: str):
+    """Get user's conversation history (default sustainability mode)"""
+    conversation = load_conversation(username, "sustainability")
     if conversation:
         return conversation
     return {"messages": []}
 
-@app.get("/conversation/{mode}/{session_id}")
-async def get_conversation_by_mode(mode: str, session_id: str):
+@app.get("/conversation/{mode}/{username}")
+async def get_conversation_by_mode(mode: str, username: str):
+    """Get user's conversation history for specific mode"""
     if mode not in ["sustainability", "personal-assistant"]:
         return {"error": "Invalid mode. Must be 'sustainability' or 'personal-assistant'"}
-    conversation = load_conversation(session_id, mode)
+    conversation = load_conversation(username, mode)
     if conversation:
         return conversation
     return {"messages": []}

@@ -17,11 +17,72 @@
     </div>
 
     <div class="container">
+        <!-- Login Screen (NEW - First Screen) -->
+        <div id="login-screen">
+            <h1>🌱 SDG Teacher Chatbot</h1>
+            <p>Please login or register to continue</p>
+            
+            <div class="auth-form">
+                <div class="input-group">
+                    <label for="login-username">Username</label>
+                    <input type="text" id="login-username" placeholder="Enter your username..." autocomplete="username">
+                </div>
+                
+                <div class="input-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter your password..." autocomplete="current-password">
+                </div>
+                
+                <button id="login-btn" class="primary-btn">Login</button>
+                
+                <div class="auth-divider">
+                    <span>Don't have an account?</span>
+                </div>
+                
+                <button id="show-register-btn" class="secondary-btn">Create New Account</button>
+                
+                <div id="auth-message" class="auth-message"></div>
+            </div>
+        </div>
+
+        <!-- Registration Screen (NEW) -->
+        <div id="register-screen" style="display: none;">
+            <h1>🌱 Create New Account</h1>
+            <p>Register to start your learning journey</p>
+            
+            <div class="auth-form">
+                <div class="input-group">
+                    <label for="register-username">Choose Username</label>
+                    <input type="text" id="register-username" placeholder="Choose a username..." autocomplete="username">
+                </div>
+                
+                <div class="input-group">
+                    <label for="register-password">Choose Password</label>
+                    <input type="password" id="register-password" placeholder="At least 6 characters..." autocomplete="new-password">
+                </div>
+                
+                <div class="input-group">
+                    <label for="register-password-confirm">Confirm Password</label>
+                    <input type="password" id="register-password-confirm" placeholder="Re-enter password..." autocomplete="new-password">
+                </div>
+                
+                <button id="register-btn" class="primary-btn">Create Account</button>
+                
+                <div class="auth-divider">
+                    <span>Already have an account?</span>
+                </div>
+                
+                <button id="show-login-btn" class="secondary-btn">Back to Login</button>
+                
+                <div id="register-message" class="auth-message"></div>
+            </div>
+        </div>
+
         <!-- Welcome Screen -->
-        <div id="welcome-screen">
+        <div id="welcome-screen" style="display: none;">
             <div class="mode-toggle-container">
                 <div class="mode-toggle">
-                    <input type="checkbox" id="mode-toggle" class="mode-toggle-input">
+                    <input type="checkbox" id="mode-toggle" class="mode-toggle-input" checked>
                     <label for="mode-toggle" class="mode-toggle-label">
                         <span class="mode-toggle-text" data-on="🤖 Personal Assistant" data-off="🌱 Sustainability Teacher"></span>
                         <span class="mode-toggle-slider"></span>

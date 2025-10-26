@@ -4,7 +4,14 @@ A powerful dual-mode intelligent chatbot powered by Google's Gemini AI. Switch b
 
 ## ✨ Features
 
-### 🔄 Dual Mode System
+### � User Authentication System
+- **👤 User Accounts**: Secure registration and login system
+- **🔒 Password Security**: SHA-256 password hashing (never stored in plain text)
+- **💾 Persistent Memory**: Your conversations are saved to your account and persist across sessions
+- **🌐 Cross-Device**: Access your chat history from any device after logging in
+- **🏢 Dual Storage**: Automatically uses PostgreSQL (Railway) or JSON files (local development)
+
+### �🔄 Dual Mode System
 - **🌱 Sustainability Teacher Mode**: Educational focus on ethics, sustainability, and UN SDGs with personalized, caring responses
 - **🎭 Multi-Persona Assistant Mode**: Six specialized AI personalities that automatically switch based on your needs
 
@@ -89,15 +96,15 @@ A powerful dual-mode intelligent chatbot powered by Google's Gemini AI. Switch b
 ## 🎮 How to Use
 
 ### Getting Started
-1. **Choose your mode** using the toggle switch:
+1. **Login or Register**:
+   - **New users**: Click "Create New Account" and choose a username and password (minimum 6 characters)
+   - **Returning users**: Enter your username and password to access your saved conversations
+
+2. **Choose your mode** using the toggle switch:
    - 🌱 **Sustainability Teacher**: For education about ethics, sustainability, and SDGs
-   - 🤖 **Personal Assistant**: For environment analysis and personalized help
+   - 🤖 **Personal Assistant**: For environment analysis and personalized help (default mode)
 
-2. **Create or select a profile**:
-   - **New users**: Create a profile with your background information for personalized responses
-   - **Returning users**: Select your existing profile to continue with your conversation history
-
-3. **Start chatting** - your conversations are automatically saved and restored
+3. **Start chatting** - your conversations are automatically saved to your account and persist across all sessions
 
 ### 🌱 Sustainability Teacher Mode
 Perfect for learning and education. Ask questions like:
@@ -125,25 +132,47 @@ Ideal for practical help and environment analysis. Try:
 
 ```
 Chat bot/
-├── app.py                 # Main FastAPI application with dual-mode support
+├── app.py                 # Main FastAPI application with authentication & dual-mode support
+├── database.py            # Database layer (PostgreSQL + JSON fallback) with user auth
 ├── config/
 │   └── gemini_key.py     # Holds GEMINI_API_KEY (keep private)
+├── personas/             # AI persona configurations
+│   ├── chef_rile.json
+│   ├── teacher_rile.json
+│   ├── tech_rile.json
+│   ├── motivation_rile.json
+│   ├── finance_rile.json
+│   ├── knowledge_rile.json
+│   └── sustainability_rile.json
 ├── templates/
-│   └── index.html        # HTML template with modal system and dual-mode interface
+│   └── index.html        # HTML with login/register screens and dual-mode interface
 ├── static/
-│   ├── style.css         # CSS styling with mode-specific themes and modal effects
-│   └── script.js         # JavaScript for frontend functionality, profile management, media handling
-├── memory/               # Conversation storage (auto-created, acts as a database)
-│   ├── sustainability/   # Sustainability Teacher mode conversations
-│   │   └── session_*.json
-│   └── personal_assistant/ # Personal Assistant mode conversations  
-│       └── session_*.json
+│   ├── style.css         # CSS with auth screens, mode-specific themes
+│   └── script.js         # Frontend with authentication, media handling
+├── memory/               # Local storage (auto-created for development)
+│   ├── users.json        # User accounts (local only)
+│   ├── sustainability/   # Sustainability mode conversations by username
+│   │   └── {username}.json
+│   └── personal_assistant/ # Personal Assistant mode conversations by username
+│       └── {username}.json
 └── README.md            # This file
 ```
 
 ## 🔧 Configuration
 
-The chatbot uses Google's Gemini-1.5-Flash model, which is free tier compatible. The API key is already configured in the code.
+### API Key
+The chatbot uses Google's Gemini-2.5-Flash model, which is free tier compatible. The API key is configured in `config/gemini_key.py`.
+
+### Authentication System
+- **Local Development**: Uses JSON files in `memory/users.json`
+- **Production (Railway)**: Automatically uses PostgreSQL database
+- **Password Security**: SHA-256 hashing (never stores plain text passwords)
+- **User-Based Memory**: All conversations are tied to username and persist across sessions
+
+### Database Tables (PostgreSQL - Auto-created on Railway)
+- **users**: id, username (unique), password_hash, created_at, last_login
+- **conversations**: id, session_id, username, mode, user_message, bot_response, timestamp
+- **detailed_memories**: id, session_id, media_type, detailed_analysis, extracted_memory
 
 ## 🌟 Features in Detail
 
@@ -188,7 +217,13 @@ The chatbot uses Google's Gemini-1.5-Flash model, which is free tier compatible.
 - Look at the browser console for error messages (F12 → Console)
 
 **Want to reset conversations?**
-- Delete the `memory/` folder to clear all saved conversations. The folder will be recreated automatically when you start a new chat.
+- Delete the `memory/` folder to clear all saved conversations and user accounts (local only). The folder will be recreated automatically when you start a new chat.
+
+**Authentication issues?**
+- Ensure you're using correct username/password (case-sensitive)
+- Password must be at least 6 characters
+- Check console (F12) for specific error messages
+- For Railway: Ensure PostgreSQL service is connected and DATABASE_URL is set
 
 ## 🎯 About
 

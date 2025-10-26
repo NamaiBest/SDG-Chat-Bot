@@ -61,7 +61,7 @@ let cameraStream = null;
 let isCameraOn = false;
 
 // Mode state
-let isPersonalAssistantMode = false;
+let isPersonalAssistantMode = true; // Default to Personal Assistant mode
 // Environment memory now handled by backend detailed memory system
 let isRecording = false;
 let mediaRecorder = null;
@@ -1100,12 +1100,19 @@ function goBackToMain() {
 
 async function loadConversationHistory() {
     try {
-        console.log('Loading conversation history for session:', sessionId);
+        // Use authenticated username instead of session ID
+        const userForHistory = authenticatedUsername || currentUsername;
+        console.log('Loading conversation history for user:', userForHistory);
         
-        // Load conversations from both modes
+        if (!userForHistory) {
+            console.log('No username available for loading history');
+            return;
+        }
+        
+        // Load conversations from both modes for this user
         const [sustainabilityResponse, personalAssistantResponse] = await Promise.all([
-            fetch(`/conversation/sustainability/${sessionId}`).catch(() => ({ json: () => ({ messages: [] }) })),
-            fetch(`/conversation/personal-assistant/${sessionId}`).catch(() => ({ json: () => ({ messages: [] }) }))
+            fetch(`/conversation/sustainability/${userForHistory}`).catch(() => ({ json: () => ({ messages: [] }) })),
+            fetch(`/conversation/personal-assistant/${userForHistory}`).catch(() => ({ json: () => ({ messages: [] }) }))
         ]);
         
         const sustainabilityData = await sustainabilityResponse.json();
@@ -1677,14 +1684,13 @@ window.addEventListener('load', () => {
     const savedUsername = localStorage.getItem('sdg_username');
     const headerMessage = document.getElementById('header-message');
     
-    if (savedUsername) {
-        usernameInput.value = savedUsername;
-        if (headerMessage) headerMessage.textContent = `Hello ${savedUsername}! Ask me about ethics, sustainability, or SDG goals.`;
-    } else {
-        // Set default text when no username is saved
-        if (headerMessage) headerMessage.textContent = 'Ask me about ethics, sustainability, or SDG goals.';
+    // On login screen, don't show username - just show generic message
+    if (headerMessage) {
+        headerMessage.textContent = 'Welcome! Please log in to continue.';
     }
-    usernameInput.focus();
+    
+    // Don't pre-fill username on login screen for security
+    // usernameInput.focus();
     
     // Initialize speech synthesis voices
     initializeSpeechSynthesis();
@@ -1814,10 +1820,15 @@ function initializeModeToggle() {
     if (modeToggle) {
         modeToggle.addEventListener('change', toggleMode);
         
-        // Load saved mode preference
+        // Load saved mode preference or use default (Personal Assistant)
         const savedMode = localStorage.getItem('sdg_chat_mode');
-        if (savedMode === 'personal-assistant') {
+        if (savedMode === 'personal-assistant' || !savedMode) {
+            // Default to Personal Assistant if no saved preference
             modeToggle.checked = true;
+            toggleMode();
+        } else {
+            // Sustainability mode
+            modeToggle.checked = false;
             toggleMode();
         }
     }
@@ -2182,3 +2193,182 @@ function formatMemoryForAI(memory) {
         return `${timeContext} - ${memoryContent}`;
     });
 }
+
+// ============================================
+// Authentication System
+// ============================================
+
+// Get auth elements
+const loginScreen = document.getElementById('login-screen');
+const registerScreen = document.getElementById('register-screen');
+const loginUsername = document.getElementById('login-username');
+const loginPassword = document.getElementById('login-password');
+const loginBtn = document.getElementById('login-btn');
+const registerUsername = document.getElementById('register-username');
+const registerPassword = document.getElementById('register-password');
+const registerPasswordConfirm = document.getElementById('register-password-confirm');
+const registerBtn = document.getElementById('register-btn');
+const showRegisterBtn = document.getElementById('show-register-btn');
+const showLoginBtn = document.getElementById('show-login-btn');
+const authMessage = document.getElementById('auth-message');
+const registerMessage = document.getElementById('register-message');
+
+// Store authenticated username
+let authenticatedUsername = null;
+
+// Show message helper
+function showAuthMessage(element, message, type) {
+    element.textContent = message;
+    element.className = `auth-message ${type}`;
+    element.style.display = 'block';
+}
+
+// Hide message helper
+function hideAuthMessage(element) {
+    element.style.display = 'none';
+}
+
+// Switch to registration screen
+showRegisterBtn.addEventListener('click', () => {
+    loginScreen.style.display = 'none';
+    registerScreen.style.display = 'block';
+    hideAuthMessage(authMessage);
+    hideAuthMessage(registerMessage);
+});
+
+// Switch to login screen
+showLoginBtn.addEventListener('click', () => {
+    registerScreen.style.display = 'none';
+    loginScreen.style.display = 'block';
+    hideAuthMessage(authMessage);
+    hideAuthMessage(registerMessage);
+});
+
+// Handle login
+loginBtn.addEventListener('click', async () => {
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value.trim();
+    
+    if (!username || !password) {
+        showAuthMessage(authMessage, 'Please enter both username and password', 'error');
+        return;
+    }
+    
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Logging in...';
+    hideAuthMessage(authMessage);
+    
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            authenticatedUsername = data.username;
+            showAuthMessage(authMessage, 'Login successful! Redirecting...', 'success');
+            
+            // Wait a moment then show welcome screen
+            setTimeout(() => {
+                loginScreen.style.display = 'none';
+                welcomeScreen.style.display = 'block';
+                // Pre-fill username in welcome screen
+                if (usernameInput) usernameInput.value = authenticatedUsername;
+                if (assistantUsernameInput) assistantUsernameInput.value = authenticatedUsername;
+            }, 1000);
+        } else {
+            // Show specific error messages
+            if (data.error === 'Username not registered') {
+                showAuthMessage(authMessage, 
+                    'Username not registered. Would you like to create a new account?', 
+                    'error');
+            } else if (data.error === 'Incorrect password') {
+                showAuthMessage(authMessage, 'Incorrect password. Please try again.', 'error');
+            } else {
+                showAuthMessage(authMessage, data.error || 'Login failed', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        showAuthMessage(authMessage, 'Connection error. Please try again.', 'error');
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
+    }
+});
+
+// Handle registration
+registerBtn.addEventListener('click', async () => {
+    const username = registerUsername.value.trim();
+    const password = registerPassword.value.trim();
+    const passwordConfirm = registerPasswordConfirm.value.trim();
+    
+    if (!username || !password || !passwordConfirm) {
+        showAuthMessage(registerMessage, 'Please fill in all fields', 'error');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showAuthMessage(registerMessage, 'Password must be at least 6 characters', 'error');
+        return;
+    }
+    
+    if (password !== passwordConfirm) {
+        showAuthMessage(registerMessage, 'Passwords do not match', 'error');
+        return;
+    }
+    
+    registerBtn.disabled = true;
+    registerBtn.textContent = 'Creating Account...';
+    hideAuthMessage(registerMessage);
+    
+    try {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            authenticatedUsername = data.username;
+            showAuthMessage(registerMessage, 'Account created successfully! Redirecting...', 'success');
+            
+            // Wait a moment then show welcome screen
+            setTimeout(() => {
+                registerScreen.style.display = 'none';
+                welcomeScreen.style.display = 'block';
+                // Pre-fill username in welcome screen
+                if (usernameInput) usernameInput.value = authenticatedUsername;
+                if (assistantUsernameInput) assistantUsernameInput.value = authenticatedUsername;
+            }, 1500);
+        } else {
+            if (data.error === 'Username already exists') {
+                showAuthMessage(registerMessage, 
+                    'Username already taken. Please choose a different username.', 
+                    'error');
+            } else {
+                showAuthMessage(registerMessage, data.error || 'Registration failed', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        showAuthMessage(registerMessage, 'Connection error. Please try again.', 'error');
+    } finally {
+        registerBtn.disabled = false;
+        registerBtn.textContent = 'Create Account';
+    }
+});
+
+// Allow Enter key to submit
+loginPassword.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') loginBtn.click();
+});
+
+registerPasswordConfirm.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') registerBtn.click();
+});

@@ -825,44 +825,60 @@ body.personal-assistant-mode #new-username:focus {
     right: 0 !important;
     background: linear-gradient(135deg, #00695c 0%, #00897b 100%) !important;
     color: white !important;
-    padding: 6px 20px !important;
+    padding: 8px 20px !important;
     display: flex !important;
-    justify-content: space-between !important;
+    justify-content: center !important;
     align-items: center !important;
     font-weight: 500 !important;
     z-index: 10001 !important;
-    height: 40px !important;
+    height: 44px !important;
+    box-sizing: border-box !important;
 }
 
 #top-header .header-left {
     font-weight: 600;
     font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1;
+    position: absolute;
+    left: 20px;
 }
 
 #top-header .header-center {
-    flex-grow: 1;
     text-align: center;
-    margin: 0 20px;
     font-size: 0.95em;
+    line-height: 1.2;
 }
 
 #top-header .header-right {
-    width: 120px;
     display: flex;
     justify-content: flex-end;
+    align-items: center;
+    position: absolute;
+    right: 20px;
 }
 
 .back-btn {
     background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: white;
-    padding: 4px 10px;
+    padding: 6px 14px;
     border-radius: 15px;
     font-size: 0.85em;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(5px);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    line-height: 1;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .back-btn:hover {
@@ -1361,16 +1377,17 @@ body.personal-assistant-mode .video-context-label {
 /* Input Area - Always visible at bottom */
 .input-area {
     position: fixed !important;
-    bottom: 40px !important;
+    bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
     background: white !important;
     border-top: 1px solid #e0e0e0;
-    padding: 8px;
+    padding: 8px !important;
     margin: 0 !important;
     z-index: 9999 !important;
     box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
     width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 /* Input stays pinned at bottom with media controls */
@@ -1379,7 +1396,7 @@ body.personal-assistant-mode .video-context-label {
     align-items: center;
     padding: 8px 10px; 
     background: white;
-    gap: 5px;
+    gap: 8px;
     overflow: hidden;
 }
 
@@ -1397,16 +1414,19 @@ body.personal-assistant-mode .video-context-label {
     width: 45px;
     height: 45px;
     border-radius: 50%;
-    font-size: 1.4em;
+    font-size: 1.1em;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
+    line-height: 1;
+    padding: 0;
+    text-align: center;
 }
 
 /* Individual button colors */
@@ -1424,6 +1444,11 @@ body.personal-assistant-mode .video-context-label {
     background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
     box-shadow: 0 2px 8px rgba(168, 237, 234, 0.3);
     color: #333 !important;
+    font-size: 1.1em !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer;
 }
 
 .media-btn-inline:hover {
@@ -1559,4 +1584,169 @@ body.personal-assistant-mode .video-context-label {
     .media-preview-content {
         margin: 10px;
     }
+}
+
+/* ============================================
+   Authentication Screens Styles
+   ============================================ */
+
+#login-screen, #register-screen {
+    text-align: center;
+    max-width: 450px;
+    margin: 0 auto;
+    padding: 60px 20px;
+}
+
+#login-screen h1, #register-screen h1 {
+    background: linear-gradient(135deg, #00695c 0%, #00897b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+    font-size: 2.5em;
+    font-weight: 700;
+}
+
+#login-screen p, #register-screen p {
+    color: #555;
+    margin-bottom: 35px;
+    font-size: 1.1em;
+    font-weight: 400;
+}
+
+.auth-form {
+    background: white;
+    padding: 40px;
+    border-radius: 20px 20px 50px 50px;
+    box-shadow: 0 10px 40px rgba(0, 105, 92, 0.15);
+    border: 1px solid rgba(0, 105, 92, 0.1);
+}
+
+.input-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #00695c;
+    font-weight: 600;
+    font-size: 0.95em;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #00897b;
+    box-shadow: 0 0 0 3px rgba(0, 137, 123, 0.1);
+}
+
+.primary-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #00695c 0%, #00897b 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 15px rgba(0, 105, 92, 0.3);
+}
+
+.primary-btn:hover {
+    background: linear-gradient(135deg, #004d40 0%, #00695c 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 105, 92, 0.4);
+}
+
+.primary-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(0, 105, 92, 0.3);
+}
+
+.secondary-btn {
+    width: 100%;
+    padding: 14px;
+    background: white;
+    color: #00695c;
+    border: 2px solid #00897b;
+    border-radius: 12px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.secondary-btn:hover {
+    background: linear-gradient(135deg, rgba(0, 105, 92, 0.05) 0%, rgba(0, 137, 123, 0.05) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 105, 92, 0.15);
+}
+
+.auth-divider {
+    margin: 25px 0;
+    text-align: center;
+    position: relative;
+}
+
+.auth-divider::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #e0e0e0, transparent);
+}
+
+.auth-divider span {
+    position: relative;
+    background: white;
+    padding: 0 20px;
+    color: #999;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.auth-message {
+    margin-top: 15px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-size: 0.95em;
+    display: none;
+    font-weight: 500;
+}
+
+.auth-message.error {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    color: #c62828;
+    border: 1px solid #ef9a9a;
+    display: block;
+}
+
+.auth-message.success {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    color: #2e7d32;
+    border: 1px solid #81c784;
+    display: block;
+}
+
+.auth-message.info {
+    background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%);
+    color: #0277bd;
+    border: 1px solid #4fc3f7;
+    display: block;
 }
