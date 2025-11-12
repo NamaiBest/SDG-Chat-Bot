@@ -858,6 +858,57 @@ body.personal-assistant-mode #new-username:focus {
     align-items: center;
     position: absolute;
     right: 20px;
+    gap: 12px;
+}
+
+/* Locket Status Indicator */
+.locket-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+    font-size: 0.8em;
+    font-weight: 500;
+    color: white;
+}
+
+.locket-status:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05);
+}
+
+.locket-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff4444;
+    transition: background 0.3s ease;
+    animation: disconnectedPulse 2s infinite;
+}
+
+.locket-status.connected .locket-dot {
+    background: #44ff44;
+    animation: connectedPulse 2s infinite;
+}
+
+@keyframes connectedPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+@keyframes disconnectedPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+.locket-text {
+    white-space: nowrap;
 }
 
 .back-btn {
@@ -1372,6 +1423,36 @@ body.personal-assistant-mode .video-context-label {
 .message-content {
     flex: 1;
     line-height: 1.5;
+}
+
+/* Locket Message Indicator - Purple dot */
+.locket-message {
+    position: relative;
+}
+
+.locket-message::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(102, 126, 234, 0.6);
+    animation: locketPulse 2s infinite;
+    z-index: 10;
+}
+
+@keyframes locketPulse {
+    0%, 100% { 
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% { 
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
 }
 
 /* Input Area - Always visible at bottom */

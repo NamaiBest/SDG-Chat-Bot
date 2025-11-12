@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register ESP32-CAM Device</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .help-text {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            color: #2e7d32;
+            border: 1px solid #81c784;
+        }
+
+        .message.error {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+
+        .device-list {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .device-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .device-info {
+            flex: 1;
+        }
+
+        .device-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .device-id {
+            font-size: 0.85em;
+            color: #666;
+            font-family: monospace;
+        }
+
+        .device-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            margin-top: 15px;
+            overflow-x: auto;
+        }
+
+        .code-title {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Register ESP32-CAM</h1>
+        <p class="subtitle">Link your ESP32-CAM device to your account for hands-free AI assistance</p>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="username">Your Username</label>
+                <input type="text" id="username" name="username" required 
+                       placeholder="e.g., Sam">
+                <div class="help-text">Your registered account username</div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Your Password</label>
+                <input type="password" id="password" name="password" required 
+                       placeholder="Enter your password">
+                <div class="help-text">Your account password (for authentication)</div>
+            </div>
+
+            <div class="form-group">
+                <label for="deviceName">Device Name (Optional)</label>
+                <input type="text" id="deviceName" name="deviceName" 
+                       placeholder="e.g., My AI Locket">
+                <div class="help-text">Friendly name to identify this device</div>
+            </div>
+
+            <div class="help-text" style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-radius: 8px; border-left: 4px solid #667eea;">
+                <strong>ℹ️ Note:</strong> Device ID will be automatically generated from your ESP32's MAC address when it connects. No manual Device ID needed!
+            </div>
+
+            <button type="submit">Register Device</button>
+        </form>
+
+        <div id="message" class="message"></div>
+
+        <div class="device-list" id="deviceList" style="display: none;">
+            <h3>✅ Device Registered Successfully!</h3>
+            <div id="devices"></div>
+
+            <div style="margin-top: 20px;">
+                <div class="code-title">📝 Update your ESP32 code with:</div>
+                <div class="code-block" id="codeSnippet"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;  // Automatically use current server
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const deviceName = document.getElementById('deviceName').value.trim() || 'ESP32-CAM Locket';
+
+            const messageDiv = document.getElementById('message');
+            messageDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/api/esp32/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        device_id: "WEB_REGISTRATION",  // Placeholder - ESP32 will use its MAC
+                        username: username,
+                        password: password,
+                        device_name: deviceName
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    messageDiv.className = 'message success';
+                    messageDiv.textContent = '✓ Credentials verified! Your ESP32 will auto-register when it connects.';
+                    messageDiv.style.display = 'block';
+
+                    // Show configuration info
+                    showDeviceInfo(username, deviceName);
+
+                    // Clear form (but not password for security)
+                    document.getElementById('registerForm').reset();
+                } else {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = `✗ ${data.error || 'Authentication failed'}`;
+                    messageDiv.style.display = 'block';
+                }
+            } catch (error) {
+                messageDiv.className = 'message error';
+                messageDiv.textContent = `✗ Connection error: ${error.message}`;
+                messageDiv.style.display = 'block';
+            }
+        });
+
+        function showDeviceInfo(username, deviceName) {
+            const deviceList = document.getElementById('deviceList');
+            const devicesDiv = document.getElementById('devices');
+            const codeSnippet = document.getElementById('codeSnippet');
+
+            deviceList.style.display = 'block';
+
+            devicesDiv.innerHTML = `
+                <div class="device-item">
+                    <div class="device-info">
+                        <div class="device-name">${deviceName}</div>
+                        <div class="device-id">User: ${username}</div>
+                        <div class="device-id">Device ID: Auto-generated from MAC address</div>
+                    </div>
+                    <div class="device-status status-active">Ready</div>
+                </div>
+            `;
+
+            codeSnippet.innerHTML = `const char* SERVER_URL = "${window.location.origin}";
+const char* USERNAME = "${username}";
+const char* PASSWORD = "your-password-here";  // Use your actual password`;
+        }
+
+        // Auto-focus on first input
+        document.getElementById('username').focus();
+    </script>
+</body>
+</html>

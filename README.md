@@ -1,10 +1,23 @@
 # 🌱 SDG Teacher & Multi-Persona AI Assistant
 
-A powerful dual-mode intelligent chatbot powered by Google's Gemini AI. Switch between **Sustainability Teacher** mode for ethics and UN SDG education, or **Multi-Persona Assistant** mode featuring six specialized AI personalities (Chef, Teacher, Tech, Motivation, Finance, Knowledge) that automatically switch based on your needs. Features personalized video analysis, advanced conversation memory, and multimodal capabilities.
+A powerful dual-mode intelligent chatbot powered by Google's Gemini AI. Switch between **Sustainability Teacher** mode for ethics and UN SDG education, or **Multi-Persona Assistant** mode featuring six specialized AI personalities (Chef, Teacher, Tech, Motivation, Finance, Knowledge) that automatically switch based on your needs. Features personalized video analysis, advanced conversation memory, multimodal capabilities, and **ESP32-CAM wearable integration** for hands-free AI assistance.
 
 ## ✨ Features
 
-### � User Authentication System
+### 📱 ESP32-CAM Wearable Integration (NEW!)
+- **🎤 Wake Word Activation**: Say "start capture" to trigger hands-free recording
+- **📹 Automatic Video Recording**: 12-second video capture with simultaneous audio
+- **🎧 Bluetooth Earbuds**: Wireless audio input/output via Bluetooth A2DP
+- **🔗 Device Auto-Linking**: Link ESP32 device to your account once, no repeated login needed
+- **🌐 WiFi Communication**: Automatic sync with Railway server
+- **💾 Shared Memory**: Same conversation history across web interface and wearable device
+- **🔋 Battery Powered**: LiPo battery with TP4056 charging for portable use
+- **📊 Visual Analysis**: AI analyzes what the camera sees and responds with context-aware answers
+- **🎯 Personal Assistant Mode**: Wearable device automatically uses Personal Assistant mode for quick help
+
+See **[ESP32_SETUP_GUIDE.md](ESP32_SETUP_GUIDE.md)** for complete hardware setup instructions and **[ESP32_INTEGRATION_SUMMARY.md](ESP32_INTEGRATION_SUMMARY.md)** for deployment details.
+
+### 👤 User Authentication System
 - **👤 User Accounts**: Secure registration and login system
 - **🔒 Password Security**: SHA-256 password hashing (never stored in plain text)
 - **💾 Persistent Memory**: Your conversations are saved to your account and persist across sessions

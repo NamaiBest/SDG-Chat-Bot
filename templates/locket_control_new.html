@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Locket - Voice Activated</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .status.listening {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+            animation: pulse 2s infinite;
+        }
+
+        .status.recording {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeeba;
+        }
+
+        .status.processing {
+            background: #e2e3e5;
+            color: #383d41;
+            border: 2px solid #d6d8db;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .mic-indicator {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 30px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .mic-indicator.listening {
+            animation: breathe 2s infinite;
+        }
+
+        .mic-indicator.recording {
+            background: #dc3545;
+            animation: recordPulse 1s infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes recordPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 5px 15px rgba(220, 53, 69, 0.5); }
+            50% { transform: scale(1.1); box-shadow: 0 10px 30px rgba(220, 53, 69, 0.8); }
+        }
+
+        .info {
+            text-align: center;
+            color: #666;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .response-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .response-container.show {
+            display: block;
+        }
+
+        .response-text {
+            color: #333;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            color: #667eea;
+            text-decoration: none;
+            margin-top: 30px;
+            font-weight: bold;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .debug-log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .debug-log div {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .video-preview-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .video-preview-section.show {
+            display: block;
+        }
+
+        .video-toggle-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        .video-toggle-btn:hover {
+            opacity: 0.9;
+        }
+
+        .video-preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .video-frame {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #e9ecef;
+        }
+
+        .video-frame img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .frame-label {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .video-info {
+            text-align: center;
+            color: #666;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔮 AI Locket</h1>
+        
+        <div id="status" class="status listening">
+            🎤 Listening for "Start Capture"
+        </div>
+
+        <div id="micIndicator" class="mic-indicator listening">
+            🎤
+        </div>
+
+        <div id="info" class="info">
+            Say <strong>"Start Capture"</strong> to begin recording
+        </div>
+
+        <div id="responseContainer" class="response-container">
+            <div id="responseText" class="response-text"></div>
+            <audio id="audioPlayer" controls style="width: 100%; margin-top: 10px;"></audio>
+        </div>
+
+                <div class="debug-log" id="debugLog"></div>
+
+        <!-- Video Preview Section -->
+        <div style="margin-top: 20px;">
+            <button class="video-toggle-btn" onclick="toggleVideoPreview()">
+                📹 Show Video Frames
+            </button>
+            <div class="video-preview-section" id="videoPreviewSection">
+                <div class="video-info" id="videoInfo">
+                    No frames captured yet
+                </div>
+                <div class="video-preview-container" id="videoPreviewContainer">
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <a href="javascript:history.back()" class="back-link">← Back to Chat</a>
+    </div>
+
+    <script>
+        let recognition = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let sessionId = null;
+        let username = null;
+        let recordedTranscript = '';
+        let capturedFrames = [];
+        let currentSessionId = null;  // Store transcript during recording
+
+        const status = document.getElementById('status');
+        const micIndicator = document.getElementById('micIndicator');
+        const info = document.getElementById('info');
+        const responseContainer = document.getElementById('responseContainer');
+        const responseText = document.getElementById('responseText');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const debugLog = document.getElementById('debugLog');
+
+        // Get username from session storage
+        username = sessionStorage.getItem('username');
+        if (!username) {
+            info.textContent = 'Please login first';
+            setTimeout(() => window.location.href = '/', 2000);
+        }
+
+        function log(message) {
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            debugLog.appendChild(div);
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(message);
+        }
+
+        // Initialize speech recognition
+        function startVoiceActivation() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                log('❌ Speech recognition not supported');
+                info.textContent = 'Speech recognition not supported in this browser';
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                log('✅ Voice activation started');
+                status.textContent = '🎤 Listening for "Start Capture"';
+                status.className = 'status listening';
+                micIndicator.className = 'mic-indicator listening';
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = Array.from(event.results)
+                    .map(result => result[0].transcript)
+                    .join(' ')
+                    .toLowerCase();
+                
+                log(`Heard: "${transcript}"`);
+
+                // Check for wake word to START recording
+                if (transcript.includes('start capture') && !isRecording) {
+                    log('🎯 Wake word detected!');
+                    recordedTranscript = '';  // Reset transcript
+                    startRecording();
+                }
+                
+                // While recording, collect everything after "start capture"
+                if (isRecording) {
+                    // Extract text after "start capture" and before "stop capture"
+                    let textToRecord = transcript;
+                    if (textToRecord.includes('start capture')) {
+                        textToRecord = textToRecord.split('start capture')[1] || '';
+                    }
+                    if (textToRecord.includes('stop capture')) {
+                        textToRecord = textToRecord.split('stop capture')[0] || '';
+                    }
+                    recordedTranscript = textToRecord.trim();
+                }
+                
+                // Check for command to STOP recording
+                if (transcript.includes('stop capture') && isRecording) {
+                    log('🛑 Stop command detected!');
+                    log(`📝 Captured text: "${recordedTranscript}"`);
+                    stopRecording();
+                }
+            };
+
+            recognition.onerror = (event) => {
+                log(`❌ Recognition error: ${event.error}`);
+                if (event.error === 'not-allowed') {
+                    info.textContent = 'Microphone access denied. Please enable it in settings.';
+                }
+            };
+
+            recognition.onend = () => {
+                log('⚠️ Recognition ended, restarting...');
+                if (!isRecording) {
+                    setTimeout(() => recognition.start(), 1000);
+                }
+            };
+
+            recognition.start();
+        }
+
+        async function startRecording() {
+            if (isRecording) return;
+            isRecording = true;
+            let recordingTimeout = null;
+
+            log('📹 Starting recording...');
+            status.textContent = '🔴 Recording... Say "Stop Capture" or wait 10s';
+            status.className = 'status recording';
+            micIndicator.className = 'mic-indicator recording';
+            info.textContent = 'Recording your question... Say "Stop Capture" to finish early';
+
+            try {
+                // Start phone audio recording
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    stream.getTracks().forEach(track => track.stop());
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await processRecording(audioBlob);
+                };
+
+                // Trigger ESP32 to start recording
+                const response = await fetch('/api/locket/start-recording', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    sessionId = data.session_id;
+                    log(`✅ ESP32 triggered, session: ${sessionId}`);
+                    
+                    // Start recording
+                    mediaRecorder.start();
+                    
+                    // Restart recognition to listen for "stop capture"
+                    if (recognition) {
+                        setTimeout(() => recognition.start(), 500);
+                    }
+
+                    // Auto-stop after 10 seconds
+                    recordingTimeout = setTimeout(() => {
+                        if (mediaRecorder && mediaRecorder.state === 'recording') {
+                            log('⏱️ 10 seconds elapsed, stopping...');
+                            stopRecording();
+                        }
+                    }, 10000);
+                } else {
+                    throw new Error(data.error || 'Failed to start ESP32');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`);
+                info.textContent = `Error: ${error.message}`;
+                isRecording = false;
+                startVoiceActivation();
+            }
+        }
+
+        function stopRecording() {
+            if (!isRecording || !mediaRecorder) return;
+            
+            log('🛑 Stopping recording...');
+            
+            // Stop the media recorder
+            if (mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            
+            // Stop listening for "stop capture"
+            if (recognition) {
+                recognition.stop();
+            }
+        }
+
+        async function processRecording(audioBlob) {
+            log('📤 Uploading audio...');
+            status.textContent = '⏳ Processing...';
+            status.className = 'status processing';
+            info.textContent = 'Sending to AI...';
+
+            try {
+                // Upload phone audio WITH transcript
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'audio.webm');
+                formData.append('session_id', sessionId);
+                formData.append('username', username);
+                formData.append('transcript', recordedTranscript);  // Send the transcript!
+
+                const response = await fetch('/api/locket/upload-audio', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('✅ Processing complete!');
+                    
+                    // Display response
+                    responseText.textContent = data.response || data.text || 'Response received';
+                    
+                    // Play audio response if available
+                    if (data.audio_url) {
+                        audioPlayer.src = data.audio_url;
+                        audioPlayer.style.display = 'block';
+                        audioPlayer.play();
+                    }
+                    
+                    responseContainer.classList.add('show');
+                    
+                    // Fetch and display video frames if session ID is available
+                    if (sessionId) {
+                        currentSessionId = sessionId;
+                        await fetchSessionFrames(sessionId);
+                    }
+                    
+                    info.textContent = 'Say "Start Capture" for next question';
+                } else {
+                    throw new Error(data.error || 'Processing failed');
+                }
+            } catch (error) {
+                log(`❌ Upload error: ${error.message}`);
+                info.textContent = `Error: ${error.message}`;
+            }
+
+            isRecording = false;
+            status.textContent = '🎤 Listening for "Start Capture"';
+            status.className = 'status listening';
+            micIndicator.className = 'mic-indicator listening';
+            
+            // Restart voice activation
+            startVoiceActivation();
+        }
+
+        // Video preview functions
+        function toggleVideoPreview() {
+            const section = document.getElementById('videoPreviewSection');
+            const btn = document.querySelector('.video-toggle-btn');
+            
+            if (section.classList.contains('show')) {
+                section.classList.remove('show');
+                btn.textContent = '📹 Show Video Frames';
+            } else {
+                section.classList.add('show');
+                btn.textContent = '📹 Hide Video Frames';
+            }
+        }
+
+        function displayVideoFrames(frames) {
+            capturedFrames = frames;
+            const container = document.getElementById('videoPreviewContainer');
+            const info = document.getElementById('videoInfo');
+            
+            if (!frames || frames.length === 0) {
+                info.textContent = 'No frames captured in this session';
+                container.innerHTML = '';
+                return;
+            }
+            
+            info.textContent = `📸 ${frames.length} frame${frames.length > 1 ? 's' : ''} captured (~${(frames.length / 10).toFixed(1)} FPS)`;
+            
+            container.innerHTML = '';
+            frames.forEach((frame, index) => {
+                const frameDiv = document.createElement('div');
+                frameDiv.className = 'video-frame';
+                
+                const img = document.createElement('img');
+                img.src = `data:image/jpeg;base64,${frame}`;
+                img.alt = `Frame ${index + 1}`;
+                
+                const label = document.createElement('div');
+                label.className = 'frame-label';
+                label.textContent = `#${index + 1}`;
+                
+                frameDiv.appendChild(img);
+                frameDiv.appendChild(label);
+                container.appendChild(frameDiv);
+            });
+            
+            log(`📹 Displayed ${frames.length} video frames`);
+        }
+
+        async function fetchSessionFrames(sessionId) {
+            try {
+                log(`🔍 Fetching frames for session ${sessionId}...`);
+                const response = await fetch(`/api/locket/session-frames/${sessionId}`);
+                const data = await response.json();
+                
+                if (data.success && data.frames) {
+                    displayVideoFrames(data.frames);
+                } else {
+                    log('❌ No frames available for this session');
+                }
+            } catch (error) {
+                log(`❌ Error fetching frames: ${error.message}`);
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            log('🚀 Initializing voice activation...');
+            setTimeout(startVoiceActivation, 1000);
+        });
+    </script>
+</body>
+</html>

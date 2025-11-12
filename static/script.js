@@ -885,12 +885,17 @@ function convertMarkdownToHtml(text) {
     return text;
 }
 
-function appendMessage(role, text, animate = true) {
+function appendMessage(role, text, animate = true, isLocket = false) {
     const messageContainer = document.createElement('div');
     messageContainer.className = 'message-container';
     
     const msgDiv = document.createElement('div');
     msgDiv.className = role === 'user' ? 'user-msg' : 'bot-msg';
+    
+    // Add locket indicator if this is a locket message
+    if (isLocket) {
+        msgDiv.classList.add('locket-message');
+    }
     
     if (role === 'bot') {
         // Create speaker button for bot messages
@@ -1139,13 +1144,23 @@ async function loadConversationHistory() {
             
             // Display all messages in chronological order
             allMessages.forEach((msg, index) => {
-                // Add a subtle mode indicator for context
-                const modeIndicator = msg.mode === 'sustainability' ? '🌱' : '🤖';
-                const userMessage = msg.user_message;
-                const botMessage = msg.bot_response;
+                // Check if this is a locket message
+                const isLocket = msg.locket === true;
                 
-                appendMessage('user', userMessage, false);
-                appendMessage('bot', botMessage, false);
+                // Handle different message formats
+                // Format 1: Regular chat (user_message + bot_response)
+                if (msg.user_message) {
+                    appendMessage('user', msg.user_message, false, isLocket);
+                    if (msg.bot_response) {
+                        appendMessage('bot', msg.bot_response, false, isLocket);
+                    }
+                }
+                // Format 2: Locket messages (role + content)
+                else if (msg.role === 'user' && msg.content) {
+                    appendMessage('user', msg.content, false, isLocket);
+                } else if (msg.role === 'assistant' && msg.content) {
+                    appendMessage('bot', msg.content, false, isLocket);
+                }
             });
             return true; // Found conversation history
         } else {
@@ -2278,6 +2293,8 @@ loginBtn.addEventListener('click', async () => {
                 // Pre-fill username in welcome screen
                 if (usernameInput) usernameInput.value = authenticatedUsername;
                 if (assistantUsernameInput) assistantUsernameInput.value = authenticatedUsername;
+                // Start locket status monitoring
+                startLocketMonitoring();
             }, 1000);
         } else {
             // Show specific error messages
@@ -2372,3 +2389,59 @@ loginPassword.addEventListener('keypress', (e) => {
 registerPasswordConfirm.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') registerBtn.click();
 });
+
+
+// ============================================
+// LOCKET STATUS MONITORING
+// ============================================
+
+const locketStatus = document.getElementById('locket-status');
+let locketStatusInterval = null;
+
+async function checkLocketStatus() {
+    if (!authenticatedUsername) return;
+    
+    try {
+        const response = await fetch(`/api/locket/status/${authenticatedUsername}`);
+        const data = await response.json();
+        
+        if (data.connected) {
+            locketStatus.classList.add('connected');
+            locketStatus.title = 'AI Locket Connected - Click to control';
+        } else {
+            locketStatus.classList.remove('connected');
+            locketStatus.title = 'AI Locket Disconnected';
+        }
+    } catch (error) {
+        console.error('Locket status check error:', error);
+    }
+}
+
+// Show locket status after login
+function startLocketMonitoring() {
+    if (locketStatus) {
+        locketStatus.style.display = 'flex';
+        checkLocketStatus();
+        locketStatusInterval = setInterval(checkLocketStatus, 3000);
+    }
+}
+
+// Stop monitoring on logout
+function stopLocketMonitoring() {
+    if (locketStatus) {
+        locketStatus.style.display = 'none';
+        clearInterval(locketStatusInterval);
+    }
+}
+
+// Handle locket status click
+if (locketStatus) {
+    locketStatus.addEventListener('click', () => {
+        // Store username for locket control page
+        sessionStorage.setItem('username', authenticatedUsername);
+        window.open('/locket-control', '_blank');
+    });
+}
+
+// Start monitoring after successful login
+// (Already handled in login function above, but ensure it's called)

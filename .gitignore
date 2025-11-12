@@ -7,3 +7,47 @@ memory/
 # Python cache
 __pycache__/
 *.pyc
+
+# SSL Certificates (private keys)
+*.pem
+*.key
+*.crt
+cert.pem
+key.pem
+
+# Environment files
+.env
+.env.local
+
+# Python virtual environment
+venv/
+.venv/
+env/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Device registry (contains user data)
+devices.json
+
+# Audio files (temporary/generated)
+static/*.mp3
+static/*.wav
+static/*.webm
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

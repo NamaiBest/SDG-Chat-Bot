@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Locket - Voice Activated</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .status.recording {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeeba;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .record-button {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: none;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            margin: 30px auto;
+            display: block;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .record-button:not(.recording) {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .record-button.recording {
+            background: #dc3545;
+            animation: recordPulse 1s infinite;
+        }
+
+        .record-button:active {
+            transform: scale(0.95);
+        }
+
+        .record-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        @keyframes recordPulse {
+            0%, 100% { box-shadow: 0 5px 15px rgba(220, 53, 69, 0.5); }
+            50% { box-shadow: 0 5px 30px rgba(220, 53, 69, 0.8); }
+        }
+
+        .timer {
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+            min-height: 40px;
+        }
+
+        .response-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .response-container.show {
+            display: block;
+        }
+
+        .response-text {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .audio-player {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .info {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 AI Locket Control</h1>
+        
+        <div id="status" class="status disconnected">
+            🔴 Locket Disconnected
+        </div>
+
+        <div class="timer" id="timer"></div>
+
+        <button id="recordButton" class="record-button" disabled>
+            <span id="buttonText">CONNECT</span>
+        </button>
+
+        <div class="info" id="info">
+            Connecting to locket...
+        </div>
+
+        <div id="responseContainer" class="response-container">
+            <div class="response-text" id="responseText"></div>
+            <audio id="audioPlayer" class="audio-player" controls></audio>
+        </div>
+
+        <a href="/" class="back-link">← Back to Chat</a>
+    </div>
+
+    <script>
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingTimer = null;
+        let secondsElapsed = 0;
+        let sessionId = null;
+        let username = null;
+        let isConnected = false;
+        let statusCheckInterval = null;
+
+        const recordButton = document.getElementById('recordButton');
+        const buttonText = document.getElementById('buttonText');
+        const timer = document.getElementById('timer');
+        const status = document.getElementById('status');
+        const info = document.getElementById('info');
+        const responseContainer = document.getElementById('responseContainer');
+        const responseText = document.getElementById('responseText');
+        const audioPlayer = document.getElementById('audioPlayer');
+
+        // Get username from session storage (set during login)
+        username = sessionStorage.getItem('username');
+        if (!username) {
+            info.textContent = 'Please login first';
+            window.location.href = '/';
+        }
+
+        // Check locket connection status
+        async function checkLocketStatus() {
+            try {
+                const response = await fetch(`/api/locket/status/${username}`);
+                const data = await response.json();
+                
+                if (data.connected) {
+                    if (!isConnected) {
+                        isConnected = true;
+                        status.className = 'status connected';
+                        status.textContent = '🟢 Locket Connected';
+                        recordButton.disabled = false;
+                        buttonText.textContent = 'START';
+                        info.textContent = 'Press to start 10-second recording';
+                    }
+                    
+                    if (data.recording) {
+                        status.className = 'status recording';
+                        status.textContent = '🔴 Locket Recording...';
+                    }
+                } else {
+                    if (isConnected) {
+                        isConnected = false;
+                        status.className = 'status disconnected';
+                        status.textContent = '🔴 Locket Disconnected';
+                        recordButton.disabled = true;
+                        buttonText.textContent = 'CONNECT';
+                        info.textContent = 'Waiting for locket to connect...';
+                    }
+                }
+            } catch (error) {
+                console.error('Status check error:', error);
+            }
+        }
+
+        // Start checking status every 2 seconds
+        checkLocketStatus();
+        statusCheckInterval = setInterval(checkLocketStatus, 2000);
+
+        // Record button handler
+        recordButton.addEventListener('click', async () => {
+            if (!isConnected) return;
+
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                await startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        async function startRecording() {
+            try {
+                // Request phone microphone access
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await uploadPhoneAudio(audioBlob);
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                // Trigger ESP32 to start recording
+                const response = await fetch('/api/locket/start-recording', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    sessionId = data.session_id;
+                    
+                    // Start recording
+                    mediaRecorder.start();
+                    recordButton.classList.add('recording');
+                    buttonText.textContent = 'STOP';
+                    responseContainer.classList.remove('show');
+                    
+                    // Start timer
+                    secondsElapsed = 0;
+                    updateTimer();
+                    recordingTimer = setInterval(() => {
+                        secondsElapsed++;
+                        updateTimer();
+                        
+                        // Auto-stop after 10 seconds
+                        if (secondsElapsed >= 10) {
+                            stopRecording();
+                        }
+                    }, 1000);
+                    
+                    info.textContent = 'Recording... Speak now!';
+                } else {
+                    alert('Failed to start recording: ' + (data.error || 'Unknown error'));
+                }
+
+            } catch (error) {
+                console.error('Recording error:', error);
+                alert('Microphone access denied or error occurred');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                recordButton.classList.remove('recording');
+                buttonText.textContent = 'START';
+                clearInterval(recordingTimer);
+                timer.textContent = '';
+                info.textContent = 'Processing...';
+            }
+        }
+
+        function updateTimer() {
+            const remaining = 10 - secondsElapsed;
+            timer.textContent = remaining > 0 ? `${remaining}s` : 'Processing...';
+        }
+
+        async function uploadPhoneAudio(audioBlob) {
+            try {
+                // Convert to base64
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                    const base64Audio = reader.result;
+                    
+                    const response = await fetch('/api/locket/upload-phone-audio', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            session_id: sessionId,
+                            audio: base64Audio
+                        })
+                    });
+
+                    if (response.ok) {
+                        console.log('Phone audio uploaded successfully');
+                        // Wait for ESP32 to upload and server to process
+                        await pollForResponse();
+                    } else {
+                        info.textContent = 'Error uploading audio';
+                    }
+                };
+                reader.readAsDataURL(audioBlob);
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                info.textContent = 'Error processing recording';
+            }
+        }
+
+        async function pollForResponse() {
+            // Poll server for response (will be implemented)
+            // For now, show placeholder
+            setTimeout(() => {
+                responseText.textContent = "AI response will appear here once server processing is complete. This is a placeholder response.";
+                responseContainer.classList.add('show');
+                info.textContent = 'Ready for next recording';
+                
+                // TODO: Play TTS audio
+                // audioPlayer.src = 'data:audio/mp3;base64,...';
+                // audioPlayer.play();
+            }, 2000);
+        }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            clearInterval(statusCheckInterval);
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -36,7 +36,7 @@ def init_database():
         # Ensure memory directory exists
         if not os.path.exists(MEMORY_DIR):
             os.makedirs(MEMORY_DIR)
-        return
+        return None
     
     print("[INFO] Using PostgreSQL database")
     
@@ -109,6 +109,7 @@ def init_database():
         db_pool.putconn(conn)
         
         print("[SUCCESS] Database initialized successfully")
+        return db_pool
         
     except Exception as e:
         print(f"[ERROR] Database initialization failed: {e}")
