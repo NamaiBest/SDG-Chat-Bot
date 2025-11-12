@@ -1620,14 +1620,36 @@ if __name__ == "__main__":
     # Use SSL only in local development (Railway provides HTTPS automatically)
     ssl_keyfile = None
     ssl_certfile = None
+    protocol = "http"
     
     # Check if running locally (cert files exist)
     if os.path.exists("key.pem") and os.path.exists("cert.pem"):
         ssl_keyfile = "key.pem"
         ssl_certfile = "cert.pem"
+        protocol = "https"
+        print("\n" + "="*60)
         print("[INFO] Running with local SSL certificates")
+        print("="*60)
     else:
+        print("\n" + "="*60)
         print("[INFO] Running without SSL (Railway will provide HTTPS)")
+        print("="*60)
+    
+    # Get local IP addresses
+    import socket
+    hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(hostname)
+    
+    # Print access URLs
+    print(f"\n🚀 Server is running!\n")
+    print(f"📱 Access your AI Locket Control:")
+    print(f"   • Main Chat:        {protocol}://localhost:{port}")
+    print(f"   • Locket Control:   {protocol}://localhost:{port}/locket-control")
+    print(f"   • Device Register:  {protocol}://localhost:{port}/register-device")
+    print(f"\n🌐 Network Access (from other devices on same WiFi):")
+    print(f"   • {protocol}://{local_ip}:{port}/locket-control")
+    print(f"\n💡 For ESP32: Update SERVER_URL to: {protocol}://{local_ip}:{port}")
+    print("="*60 + "\n")
     
     uvicorn.run(
         app, 
@@ -1636,4 +1658,5 @@ if __name__ == "__main__":
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile
     )
+
 id 

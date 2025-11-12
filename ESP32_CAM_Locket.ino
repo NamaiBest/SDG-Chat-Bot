@@ -54,7 +54,11 @@ const char* WIFI_PASSWORD = "12345678"; // Your WiFi password
 //   - Port 8000 is FastAPI default (or use your custom port like 8080)
 //   - NOTE: Using HTTPS (not HTTP) for microphone access on phones
 // For PRODUCTION: Use your Railway deployment URL (e.g., "https://your-app.up.railway.app")
-const char* SERVER_URL = "https://192.xxx.x.xxx:8000";  // Replace with YOUR IP (HTTPS!)
+
+// CHANGE THIS BASED ON WHERE YOU WANT TO CONNECT:
+// LOCAL: const char* SERVER_URL = "https://192.168.x.x:8000";
+// RAILWAY: const char* SERVER_URL = "https://sdg-chat-bot-production-95ea.up.railway.app";
+const char* SERVER_URL = "https://sdg-chat-bot-production-95ea.up.railway.app";  // Currently: RAILWAY
 
 // User Authentication - Use your chat app credentials
 const char* USERNAME = "Sam";             // Your registered username
