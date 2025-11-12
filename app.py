@@ -1616,12 +1616,24 @@ async def process_complete_session(session_id: str):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    # Use HTTPS with self-signed certificate for microphone access
+    
+    # Use SSL only in local development (Railway provides HTTPS automatically)
+    ssl_keyfile = None
+    ssl_certfile = None
+    
+    # Check if running locally (cert files exist)
+    if os.path.exists("key.pem") and os.path.exists("cert.pem"):
+        ssl_keyfile = "key.pem"
+        ssl_certfile = "cert.pem"
+        print("[INFO] Running with local SSL certificates")
+    else:
+        print("[INFO] Running without SSL (Railway will provide HTTPS)")
+    
     uvicorn.run(
         app, 
         host="0.0.0.0", 
         port=port,
-        ssl_keyfile="key.pem",
-        ssl_certfile="cert.pem"
+        ssl_keyfile=ssl_keyfile,
+        ssl_certfile=ssl_certfile
     )
 id 
