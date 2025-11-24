@@ -71,7 +71,7 @@ const char* PASSWORD = "123456";     // Your account password
 String DEVICE_ID = "";  // Will be set automatically in setup()
 
 // Recording configuration
-const int VIDEO_DURATION = 10;  // seconds (matches phone audio duration)
+const int VIDEO_DURATION = 30;  // seconds (matches phone audio duration)
 
 // Heartbeat configuration (to show "Locket Connected" status)
 unsigned long lastHeartbeat = 0;
