@@ -60,6 +60,9 @@ const char* WIFI_PASSWORD = "12345678"; // Your WiFi password
 // RAILWAY: const char* SERVER_URL = "https://sdg-chat-bot-production-95ea.up.railway.app";
 const char* SERVER_URL = "https://sdg-chat-bot-production-95ea.up.railway.app";  // Currently: RAILWAY
 
+// SSL Configuration for Railway
+const bool USE_HTTPS = true;  // Using HTTPS with insecure mode
+
 // User Authentication - Use your chat app credentials
 const char* USERNAME = "Sam";             // Your registered username
 const char* PASSWORD = "123456";     // Your account password
@@ -113,6 +116,10 @@ String currentSessionId = "";  // Track current recording session
 int totalFramesSent = 0;  // Track total frames uploaded in session
 
 unsigned long recordingStartTime = 0;
+
+// Persistent streaming client (reused for all frames)
+WiFiClientSecure *streamClient = nullptr;
+HTTPClient *streamHttp = nullptr;
 
 // ============================================
 // FUNCTION DECLARATIONS
@@ -304,20 +311,26 @@ bool sendHeartbeat() {
     return false;
   }
   
+  // Create WiFiClientSecure for HTTPS
+  WiFiClientSecure *client = new WiFiClientSecure;
+  if (!client) {
+    return false;
+  }
+  
+  client->setInsecure();  // Skip certificate validation
+  
   HTTPClient http;
   String url = String(SERVER_URL) + "/api/esp32/heartbeat";
   
-  // For HTTPS, use WiFiClientSecure without certificate validation
-  WiFiClientSecure *client = new WiFiClientSecure;
-  if(client) {
-    client->setInsecure();  // Skip certificate verification
-    http.begin(*client, url);
-  } else {
-    http.begin(url);  // Fallback to regular HTTP client
+  if(!http.begin(*client, url)) {
+    delete client;
+    return false;
   }
-  http.addHeader("Content-Type", "application/json");
   
-  // Build JSON manually to avoid memory issues
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(10000);  // 10 second timeout
+  
+  // Build JSON payload
   String payload = "{\"device_id\":\"" + DEVICE_ID + 
                   "\",\"status\":\"online\",\"recording\":" + 
                   (isRecording ? "true" : "false") + "}";
@@ -330,7 +343,7 @@ bool sendHeartbeat() {
     // Debug: Print response
     Serial.println("[DEBUG] Heartbeat response: " + response);
     
-    // Check if server sent a command (more flexible parsing)
+    // Check if server sent a command
     if (response.indexOf("start_recording") > 0) {
       Serial.println("\n📱 Server command: START RECORDING!");
       recordingTriggered = true;
@@ -345,12 +358,19 @@ bool sendHeartbeat() {
     }
     
     http.end();
+    delete client;
     return true;
   } else {
-    Serial.println("[ERROR] Heartbeat failed, code: " + String(httpCode));
+    // Only print errors occasionally to avoid spam
+    static int errorCount = 0;
+    if (errorCount % 10 == 0) {
+      Serial.println("[ERROR] Heartbeat failed, code: " + String(httpCode));
+    }
+    errorCount++;
   }
   
   http.end();
+  delete client;
   return false;
 }
 
@@ -384,6 +404,24 @@ void connectWiFi() {
     Serial.println("\n✓ WiFi connected");
     Serial.print("  IP: ");
     Serial.println(WiFi.localIP());
+    
+    // Configure Google DNS after connection
+    IPAddress dns1(8, 8, 8, 8);
+    IPAddress dns2(8, 8, 4, 4);
+    WiFi.setDNS(dns1, dns2);
+    
+    Serial.print("  DNS: ");
+    Serial.println(WiFi.dnsIP());
+    
+    // Test DNS resolution
+    Serial.println("  Testing DNS resolution...");
+    IPAddress testIP;
+    if (WiFi.hostByName("google.com", testIP)) {
+      Serial.print("  ✓ google.com resolved to: ");
+      Serial.println(testIP);
+    } else {
+      Serial.println("  ✗ Failed to resolve google.com");
+    }
   } else {
     Serial.println("\n✗ WiFi connection failed!");
     ESP.restart();
@@ -399,23 +437,34 @@ bool registerDevice() {
     return false;
   }
   
+  Serial.println("Connecting to: " + String(SERVER_URL) + "/api/esp32/register");
+  
+  // Create WiFiClientSecure for HTTPS with insecure mode
+  WiFiClientSecure *client = new WiFiClientSecure;
+  if (!client) {
+    Serial.println("✗ Failed to create WiFiClientSecure");
+    return false;
+  }
+  
+  // Skip certificate validation (required for Railway)
+  client->setInsecure();
+  
   HTTPClient http;
   String url = String(SERVER_URL) + "/api/esp32/register";
   
-  // For HTTPS, use WiFiClientSecure without certificate validation
-  WiFiClientSecure *client = new WiFiClientSecure;
-  if(client) {
-    client->setInsecure();  // Skip certificate verification
-    http.begin(*client, url);
-  } else {
-    http.begin(url);  // Fallback to regular HTTP client
+  if(!http.begin(*client, url)) {
+    Serial.println("✗ HTTP begin failed");
+    delete client;
+    return false;
   }
+  
   http.addHeader("Content-Type", "application/json");
+  http.setTimeout(20000);  // 20 second timeout
   
   // Get MAC address
   String macAddress = WiFi.macAddress();
   
-  // Build JSON payload manually to avoid memory issues
+  // Build JSON payload
   String payload = "{\"device_id\":\"" + DEVICE_ID + 
                   "\",\"username\":\"" + String(USERNAME) + 
                   "\",\"password\":\"" + String(PASSWORD) +
@@ -425,22 +474,44 @@ bool registerDevice() {
   Serial.println("Sending registration request...");
   Serial.println("Device ID: " + DEVICE_ID);
   Serial.println("Username: " + String(USERNAME));
+  Serial.println("Payload size: " + String(payload.length()) + " bytes");
   
   int httpCode = http.POST(payload);
   
   if (httpCode > 0) {
     String response = http.getString();
+    Serial.println("HTTP Code: " + String(httpCode));
     Serial.println("Server response: " + response);
     
     if (httpCode == 200) {
       http.end();
+      delete client;
       return true;
     }
   } else {
-    Serial.printf("Registration failed, error: %s\n", http.errorToString(httpCode).c_str());
+    Serial.printf("✗ Registration failed, error: %s\n", http.errorToString(httpCode).c_str());
+    Serial.println("  Error code: " + String(httpCode));
+    
+    // Additional debugging
+    if (httpCode == -1) {
+      Serial.println("  This usually means:");
+      Serial.println("  - DNS resolution failed");
+      Serial.println("  - Server is unreachable");
+      Serial.println("  - Network connectivity issue");
+      Serial.println("  Checking DNS...");
+      
+      IPAddress serverIP;
+      if (WiFi.hostByName("sdg-chat-bot-production-95ea.up.railway.app", serverIP)) {
+        Serial.print("  ✓ DNS resolved to: ");
+        Serial.println(serverIP);
+      } else {
+        Serial.println("  ✗ DNS resolution failed!");
+      }
+    }
   }
   
   http.end();
+  delete client;
   return false;
 }
 
@@ -464,9 +535,18 @@ void recordVideo() {
     return;
   }
   
+  // Initialize persistent streaming client
+  if (streamClient) delete streamClient;
+  if (streamHttp) delete streamHttp;
+  
+  streamClient = new WiFiClientSecure();
+  streamClient->setInsecure();
+  streamHttp = new HTTPClient();
+  
   // Stream frames with realistic timing
   camera_fb_t* fb = NULL;
   int failedFrames = 0;
+  int consecutiveFails = 0;
   unsigned long lastCaptureTime = 0;
   const int minFrameInterval = 350;  // Minimum 350ms between frames (~2.8 FPS max)
   
@@ -474,6 +554,12 @@ void recordVideo() {
   
   while ((millis() - recordingStartTime) < (VIDEO_DURATION * 1000)) {
     unsigned long now = millis();
+    
+    // Check WiFi connection
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("⚠️ WiFi disconnected! Stopping recording.");
+      break;
+    }
     
     // Only capture if enough time has passed
     if (now - lastCaptureTime >= minFrameInterval) {
@@ -490,15 +576,25 @@ void recordVideo() {
         
         if (sent) {
           totalFramesSent++;
+          consecutiveFails = 0;
           float elapsed = (millis() - recordingStartTime) / 1000.0;
           float actualFPS = totalFramesSent / elapsed;
           Serial.println("✅ Sent! (FPS: " + String(actualFPS, 1) + ")");
         } else {
           failedFrames++;
-          Serial.println("❌ Failed!");
+          consecutiveFails++;
+          Serial.println("❌ Failed! (" + String(consecutiveFails) + " consecutive)");
+          
+          // If too many consecutive failures, stop recording
+          if (consecutiveFails >= 5) {
+            Serial.println("⚠️ Too many consecutive failures. Stopping recording.");
+            esp_camera_fb_return(fb);
+            break;
+          }
         }
         
         esp_camera_fb_return(fb);
+        fb = NULL;
         
         // Print summary every 10 frames
         if (totalFramesSent > 0 && totalFramesSent % 10 == 0) {
@@ -509,11 +605,24 @@ void recordVideo() {
         }
       } else {
         Serial.println("  ⚠️ Failed to capture frame");
+        consecutiveFails++;
       }
     }
     
     // Small delay to prevent tight loop
     delay(10);
+  }
+  
+  // Cleanup streaming client
+  if (streamHttp) {
+    streamHttp->end();
+    delete streamHttp;
+    streamHttp = nullptr;
+  }
+  if (streamClient) {
+    streamClient->stop();
+    delete streamClient;
+    streamClient = nullptr;
   }
   
   Serial.println("\n✓ Recording complete!");
@@ -536,17 +645,18 @@ void recordVideo() {
 // START RECORDING SESSION
 // ============================================
 bool startRecordingSession() {
+  WiFiClientSecure *client = new WiFiClientSecure;
+  if (!client) return false;
+  client->setInsecure();
+  
   HTTPClient http;
   String url = String(SERVER_URL) + "/api/esp32/start-session";
   
-  // For HTTPS, use WiFiClientSecure without certificate validation
-  WiFiClientSecure *client = new WiFiClientSecure;
-  if(client) {
-    client->setInsecure();  // Skip certificate verification
-    http.begin(*client, url);
-  } else {
-    http.begin(url);  // Fallback to regular HTTP client
+  if(!http.begin(*client, url)) {
+    delete client;
+    return false;
   }
+  
   http.addHeader("Content-Type", "application/json");
   http.setTimeout(5000);
   
@@ -563,11 +673,13 @@ bool startRecordingSession() {
     
     Serial.println("✅ Recording session started: " + currentSessionId);
     http.end();
+    delete client;
     return true;
   }
   
   Serial.println("✗ Failed to start recording session");
   http.end();
+  delete client;
   return false;
 }
 
@@ -576,20 +688,17 @@ bool startRecordingSession() {
 // ============================================
 bool sendFrameToServer(uint8_t* frameData, size_t frameSize, int frameNumber) {
   if (WiFi.status() != WL_CONNECTED) return false;
+  if (!streamHttp || !streamClient) return false;
   
-  HTTPClient http;
   String url = String(SERVER_URL) + "/api/esp32/stream-frame";
   
-  // For HTTPS, use WiFiClientSecure without certificate validation
-  WiFiClientSecure *client = new WiFiClientSecure;
-  if(client) {
-    client->setInsecure();  // Skip certificate verification
-    http.begin(*client, url);
-  } else {
-    http.begin(url);  // Fallback to regular HTTP client
+  // Begin connection (reuses existing client)
+  if(!streamHttp->begin(*streamClient, url)) {
+    return false;
   }
-  http.addHeader("Content-Type", "application/json");
-  http.setTimeout(2000);  // Short timeout for streaming
+  
+  streamHttp->addHeader("Content-Type", "application/json");
+  streamHttp->setTimeout(5000);  // 5 second timeout
   
   // Encode frame to base64
   String frameBase64 = encodeBase64(frameData, frameSize);
@@ -600,8 +709,8 @@ bool sendFrameToServer(uint8_t* frameData, size_t frameSize, int frameNumber) {
                   ",\"data\":\"data:image/jpeg;base64," + frameBase64 + "\"" +
                   ",\"size\":" + String(frameSize) + "}";
   
-  int httpCode = http.POST(payload);
-  http.end();
+  int httpCode = streamHttp->POST(payload);
+  streamHttp->end();
   
   return (httpCode == 200);
 }
@@ -610,17 +719,18 @@ bool sendFrameToServer(uint8_t* frameData, size_t frameSize, int frameNumber) {
 // END RECORDING SESSION
 // ============================================
 bool endRecordingSession(int totalFrames) {
+  WiFiClientSecure *client = new WiFiClientSecure;
+  if (!client) return false;
+  client->setInsecure();
+  
   HTTPClient http;
   String url = String(SERVER_URL) + "/api/esp32/end-session";
   
-  // For HTTPS, use WiFiClientSecure without certificate validation
-  WiFiClientSecure *client = new WiFiClientSecure;
-  if(client) {
-    client->setInsecure();  // Skip certificate verification
-    http.begin(*client, url);
-  } else {
-    http.begin(url);  // Fallback to regular HTTP client
+  if(!http.begin(*client, url)) {
+    delete client;
+    return false;
   }
+  
   http.addHeader("Content-Type", "application/json");
   http.setTimeout(5000);
   
@@ -633,11 +743,13 @@ bool endRecordingSession(int totalFrames) {
   if (httpCode == 200) {
     Serial.println("✅ Recording session ended. Total frames: " + String(totalFrames));
     http.end();
+    delete client;
     return true;
   }
   
   Serial.println("✗ Failed to end recording session");
   http.end();
+  delete client;
   return false;
 }
 

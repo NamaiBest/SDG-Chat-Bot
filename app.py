@@ -1360,6 +1360,244 @@ async def start_locket_recording(request: Request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+async def generate_audio_response(text: str, session_id: str = None) -> dict:
+    """Generate TTS audio from text using Google Cloud TTS"""
+    try:
+        if not session_id:
+            session_id = str(int(time.time() * 1000))
+        
+        tts_url = f"https://texttospeech.googleapis.com/v1/text:synthesize?key={GEMINI_API_KEY}"
+        tts_payload = {
+            "input": {"text": text},
+            "voice": {
+                "languageCode": "en-US",
+                "name": "en-US-Studio-O"  # Natural male voice
+            },
+            "audioConfig": {
+                "audioEncoding": "MP3"
+            }
+        }
+        
+        tts_response = requests.post(tts_url, json=tts_payload)
+        tts_data = tts_response.json()
+        
+        if "audioContent" in tts_data:
+            # Decode base64 audio and save
+            audio_filename = f"locket_response_{session_id}.mp3"
+            audio_filepath = f"static/{audio_filename}"
+            
+            audio_bytes = base64.b64decode(tts_data["audioContent"])
+            with open(audio_filepath, "wb") as f:
+                f.write(audio_bytes)
+            
+            audio_url = f"/static/{audio_filename}"
+            return {"success": True, "audio_url": audio_url}
+        else:
+            print("[WARNING] TTS generation failed")
+            return {"success": False, "audio_url": None}
+            
+    except Exception as e:
+        print(f"[ERROR] TTS generation error: {e}")
+        return {"success": False, "audio_url": None}
+
+
+async def process_locket_frames(session_id: str, query: str, is_debug: bool = False):
+    """Process locket frames with AI in locket mode context"""
+    try:
+        if session_id not in active_sessions:
+            return {"error": "Session not found"}
+        
+        session = active_sessions[session_id]
+        frames = session.get("esp_frames", [])
+        username = session.get("username", "User")
+        
+        if not frames:
+            return {"text": "No frames to analyze", "audio_url": None}
+        
+        print(f"[LOCKET] Processing {len(frames)} frames for {username}")
+        
+        # Build locket mode system prompt
+        locket_system_prompt = f"""You are an AI assistant integrated into a wearable camera locket worn by {username}.
+
+CRITICAL CONTEXT:
+- You are analyzing video frames captured by a camera locket that {username} is wearing
+- These frames show what's in front of {username} from their first-person perspective
+- The locket captures the user's environment and activities as they move around
+- You should describe what you see as if you're observing through the user's wearable camera
+
+RESPONSE STYLE:
+- Be conversational and natural, as if you're a helpful AI companion
+- Describe scenes from the wearer's perspective
+- Note any interesting objects, people, activities, or changes in the environment
+- If asked "what do you see", describe the current environment captured in the frames
+- Keep responses concise but informative (2-4 sentences unless more detail is requested)
+- Use present tense as if describing what the locket is currently seeing
+
+LOCKET MODE AWARENESS:
+- You're seeing the world through a wearable camera, not a handheld device
+- Frames may show movement or slight motion blur as the user moves
+- The view is from chest/neck level (where the locket is worn)
+- Multiple frames give you a sense of the environment over time
+
+User's query: {query}"""
+        
+        # Prepare frames for Gemini API
+        parts = [{"text": locket_system_prompt}]
+        
+        # Add up to 10 frames (evenly spaced if more)
+        frames_to_send = frames
+        if len(frames) > 10:
+            # Sample every Nth frame to get 10 frames
+            step = len(frames) // 10
+            frames_to_send = [frames[i] for i in range(0, len(frames), step)][:10]
+        
+        for idx, frame in enumerate(frames_to_send):
+            frame_data = frame.get("data", "")
+            if frame_data.startswith("data:image/jpeg;base64,"):
+                base64_data = frame_data.split(',', 1)[1]
+                parts.append({
+                    "inline_data": {
+                        "mime_type": "image/jpeg",
+                        "data": base64_data
+                    }
+                })
+        
+        print(f"[LOCKET] Sending {len(frames_to_send)} frames to Gemini")
+        
+        # Call Gemini API
+        payload = {"contents": [{"parts": parts}]}
+        api_url = f"{GEMINI_BASE_URL}/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+        
+        response = requests.post(api_url, json=payload)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "candidates" in data and len(data["candidates"]) > 0:
+                ai_text = data["candidates"][0]["content"]["parts"][0]["text"]
+                print(f"[LOCKET] AI response: {ai_text[:100]}...")
+                
+                # Generate audio response
+                audio_url = None
+                try:
+                    audio_response = await generate_audio_response(ai_text)
+                    if audio_response.get("success"):
+                        audio_url = audio_response.get("audio_url")
+                except Exception as e:
+                    print(f"[LOCKET] Audio generation failed: {e}")
+                
+                # Save to conversation history (mark as locket mode)
+                save_conversation(
+                    session_id, 
+                    username, 
+                    f"[LOCKET] {query}", 
+                    ai_text, 
+                    has_media=True, 
+                    media_type="video", 
+                    mode="locket",
+                    detailed_memory=None
+                )
+                
+                return {
+                    "text": ai_text,
+                    "audio_url": audio_url
+                }
+            else:
+                return {"text": "AI couldn't generate a response", "audio_url": None}
+        else:
+            print(f"[LOCKET] Gemini API error: {response.status_code} - {response.text}")
+            return {"text": f"Error processing frames: {response.status_code}", "audio_url": None}
+            
+    except Exception as e:
+        print(f"[LOCKET] Processing error: {e}")
+        traceback.print_exc()
+        return {"text": f"Error: {str(e)}", "audio_url": None}
+
+
+@app.post("/api/locket/debug-start")
+async def debug_start_recording(request: Request):
+    """Debug mode: Start ESP32 frame capture without audio"""
+    try:
+        data = await request.json()
+        username = data.get("username")
+        
+        if username not in locket_connections:
+            return JSONResponse({"error": "Locket not connected"}, status_code=404)
+        
+        # Create debug session
+        session_id = str(int(time.time() * 1000))
+        active_sessions[session_id] = {
+            "username": username,
+            "phone_audio": None,  # No audio in debug mode
+            "esp_frames": [],
+            "frame_count": 0,
+            "fps": 3,
+            "created_at": time.time(),
+            "recording_complete": False,
+            "debug_mode": True,  # Mark as debug session
+            "debug_query": "what do you see"  # Default query
+        }
+        
+        # Store current session for this user
+        locket_connections[username]["current_session_id"] = session_id
+        
+        print(f"[DEBUG] Debug session {session_id} created for {username}")
+        
+        return JSONResponse({
+            "success": True,
+            "session_id": session_id
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Debug start error: {e}")
+        traceback.print_exc()
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/locket/debug-stop")
+async def debug_stop_recording(request: Request):
+    """Debug mode: Stop frame capture and process with AI"""
+    try:
+        data = await request.json()
+        username = data.get("username")
+        session_id = data.get("session_id")
+        query = data.get("query", "what do you see")
+        
+        if session_id not in active_sessions:
+            return JSONResponse({"error": "Invalid session"}, status_code=404)
+        
+        session = active_sessions[session_id]
+        frames_captured = len(session.get("esp_frames", []))
+        
+        print(f"[DEBUG] Processing {frames_captured} frames for session {session_id}")
+        
+        # Mark session as complete
+        session["recording_complete"] = True
+        session["debug_query"] = query
+        
+        # Process frames with AI (locket mode context)
+        if frames_captured > 0:
+            # Build AI request with locket context
+            ai_response = await process_locket_frames(session_id, query, is_debug=True)
+            
+            return JSONResponse({
+                "success": True,
+                "frames_captured": frames_captured,
+                "response": ai_response.get("text", ""),
+                "audio_url": ai_response.get("audio_url")
+            })
+        else:
+            return JSONResponse({
+                "success": False,
+                "error": "No frames captured",
+                "frames_captured": 0
+            })
+        
+    except Exception as e:
+        print(f"[ERROR] Debug stop error: {e}")
+        traceback.print_exc()
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.post("/api/locket/upload-phone-audio")
 async def upload_phone_audio(request: Request):
     """Phone uploads its recorded audio"""

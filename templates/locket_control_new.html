@@ -283,9 +283,13 @@
             🎤 Listening for "Start Capture"
         </div>
 
-        <div id="micIndicator" class="mic-indicator listening">
+        <div id="micIndicator" class="mic-indicator listening" onclick="toggleRecording()">
             🎤
         </div>
+
+        <button id="debugBtn" class="debug-btn" onclick="toggleDebugMode()">
+            🐛
+        </button>
 
         <div id="info" class="info">
             Say <strong>"Start Capture"</strong> to begin recording
@@ -326,6 +330,8 @@
         let recordedTranscript = '';
         let capturedFrames = [];
         let currentSessionId = null;  // Store transcript during recording
+        let isDebugMode = false;
+        let debugStartTime = null;
 
         const status = document.getElementById('status');
         const micIndicator = document.getElementById('micIndicator');
@@ -422,6 +428,108 @@
             };
 
             recognition.start();
+        }
+
+        function toggleRecording() {
+            if (isRecording) {
+                log('🛑 Click to stop recording');
+                stopRecording();
+            } else {
+                log('🎯 Click to start recording');
+                recordedTranscript = '';  // Reset transcript
+                startRecording();
+            }
+        }
+
+        async function toggleDebugMode() {
+            const debugBtn = document.getElementById('debugBtn');
+            
+            if (!isDebugMode) {
+                // Start debug mode
+                isDebugMode = true;
+                debugStartTime = Date.now();
+                debugBtn.classList.add('active');
+                debugBtn.textContent = '⏹️';
+                
+                log('🐛 DEBUG MODE: Starting ESP32 capture...');
+                status.textContent = '🐛 Debug Mode Active - Capturing frames...';
+                status.className = 'status recording';
+                info.textContent = 'ESP32 is capturing frames. Click again to stop.';
+                
+                try {
+                    // Tell server to start ESP32 recording in debug mode
+                    const response = await fetch('/api/locket/debug-start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        sessionId = data.session_id;
+                        log(`✅ Debug session started: ${sessionId}`);
+                    } else {
+                        throw new Error(data.error || 'Failed to start debug mode');
+                    }
+                } catch (error) {
+                    log(`❌ Debug mode error: ${error.message}`);
+                    info.textContent = `Error: ${error.message}`;
+                    isDebugMode = false;
+                    debugBtn.classList.remove('active');
+                    debugBtn.textContent = '🐛';
+                }
+            } else {
+                // Stop debug mode
+                isDebugMode = false;
+                debugBtn.classList.remove('active');
+                debugBtn.textContent = '🐛';
+                
+                const duration = ((Date.now() - debugStartTime) / 1000).toFixed(1);
+                log(`🐛 DEBUG MODE: Stopped after ${duration}s`);
+                status.textContent = '🐛 Processing debug frames...';
+                info.textContent = 'Analyzing captured frames with AI...';
+                
+                try {
+                    // Tell server to stop and process with "what do you see" command
+                    const response = await fetch('/api/locket/debug-stop', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            username,
+                            session_id: sessionId,
+                            query: 'what do you see'
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        log(`✅ Debug complete: ${data.frames_captured} frames captured`);
+                        
+                        // Display AI response
+                        if (data.response) {
+                            document.getElementById('responseText').textContent = data.response;
+                            
+                            // Play audio if available
+                            if (data.audio_url) {
+                                const audioPlayer = document.getElementById('audioPlayer');
+                                audioPlayer.src = data.audio_url;
+                                audioPlayer.play();
+                            }
+                        }
+                        
+                        status.textContent = '✅ Debug complete!';
+                        status.className = 'status listening';
+                        info.textContent = 'Debug mode ready. Click 🐛 to capture again.';
+                    } else {
+                        throw new Error(data.error || 'Failed to process debug frames');
+                    }
+                } catch (error) {
+                    log(`❌ Debug stop error: ${error.message}`);
+                    info.textContent = `Error: ${error.message}`;
+                    status.textContent = '❌ Debug failed';
+                    status.className = 'status listening';
+                }
+            }
         }
 
         async function startRecording() {
