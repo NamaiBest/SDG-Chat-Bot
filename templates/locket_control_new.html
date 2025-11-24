@@ -706,7 +706,10 @@
                 frameDiv.className = 'video-frame';
                 
                 const img = document.createElement('img');
-                img.src = `data:image/jpeg;base64,${frame}`;
+                // Extract base64 data from frame object
+                const frameData = frame.data || frame;
+                // If it already has the data URL prefix, use as-is; otherwise add it
+                img.src = frameData.startsWith('data:') ? frameData : `data:image/jpeg;base64,${frameData}`;
                 img.alt = `Frame ${index + 1}`;
                 
                 const label = document.createElement('div');

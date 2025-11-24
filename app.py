@@ -1015,16 +1015,26 @@ async def esp32_heartbeat(request: Request):
             if username in locket_connections and "current_session_id" in locket_connections[username]:
                 session_id = locket_connections[username]["current_session_id"]
                 print(f"[ESP32] Found session {session_id} for user {username}")
-                # Check if ESP32 should start recording
-                if session_id in active_sessions and not data.get("recording", False):
-                    command = "start_recording"
-                    print(f"[ESP32] ✅ Telling ESP32 to start recording for session {session_id}")
+                
+                # Check if session exists, hasn't started recording yet, and phone requested it
+                if session_id in active_sessions:
+                    session = active_sessions[session_id]
+                    esp_already_recording = data.get("recording", False)
+                    session_already_started = session.get("esp_recording_started", False)
+                    
+                    # Only tell ESP32 to record if: not currently recording AND session hasn't started ESP recording yet
+                    if not esp_already_recording and not session_already_started:
+                        command = "start_recording"
+                        # Mark that we've told ESP32 to start for this session
+                        active_sessions[session_id]["esp_recording_started"] = True
+                        print(f"[ESP32] ✅ Telling ESP32 to start recording for session {session_id}")
+                    else:
+                        print(f"[ESP32] ⏸️ ESP32 recording={esp_already_recording}, session_started={session_already_started}")
                 else:
-                    print(f"[ESP32] ⚠️ Session {session_id} not in active_sessions or ESP32 already recording")
+                    print(f"[ESP32] ⚠️ Session {session_id} not in active_sessions")
                     print(f"[ESP32] Active sessions: {list(active_sessions.keys())}")
             else:
                 print(f"[ESP32] No current_session_id for user {username}")
-                print(f"[ESP32] locket_connections[{username}]: {locket_connections[username]}")
             
             return JSONResponse({
                 "success": True,
@@ -1338,7 +1348,8 @@ async def start_locket_recording(request: Request):
             "frame_count": 0,
             "fps": 3,  # Realistic target: 2-3 FPS
             "created_at": time.time(),
-            "recording_complete": False
+            "recording_complete": False,
+            "esp_recording_started": False  # Track if ESP32 has been notified
         }
         
         # Store current session for this user so ESP32 can find it
@@ -1371,10 +1382,13 @@ async def generate_audio_response(text: str, session_id: str = None) -> dict:
             "input": {"text": text},
             "voice": {
                 "languageCode": "en-US",
-                "name": "en-US-Studio-O"  # Natural male voice
+                "name": "en-US-Neural2-J",  # Natural conversational male voice
+                "ssmlGender": "MALE"
             },
             "audioConfig": {
-                "audioEncoding": "MP3"
+                "audioEncoding": "MP3",
+                "speakingRate": 1.0,
+                "pitch": 0.0
             }
         }
         
@@ -1534,7 +1548,8 @@ async def debug_start_recording(request: Request):
             "created_at": time.time(),
             "recording_complete": False,
             "debug_mode": True,  # Mark as debug session
-            "debug_query": "what do you see"  # Default query
+            "debug_query": "what do you see",  # Default query
+            "esp_recording_started": False  # Track if ESP32 has been notified
         }
         
         # Store current session for this user
@@ -1741,10 +1756,13 @@ async def get_session_frames(session_id: str):
         
         print(f"[LOCKET] ✅ Found {len(frames)} frames for session {session_id}")
         
+        # Extract just the data field from each frame for frontend display
+        frame_data_list = [frame.get("data", frame) if isinstance(frame, dict) else frame for frame in frames]
+        
         return JSONResponse({
             "success": True,
-            "frames": frames,
-            "frame_count": len(frames),
+            "frames": frame_data_list,
+            "frame_count": len(frame_data_list),
             "session_id": session_id
         })
         
