@@ -122,7 +122,7 @@ body.personal-assistant-mode .container {
 body.personal-assistant-mode #welcome-screen {
     background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
     color: white;
-    border-radius: 0;
+    border-radius: 6px;
     position: relative;
     overflow: hidden;
 }
@@ -210,14 +210,40 @@ body.personal-assistant-mode .media-btn:hover {
 }
 
 body.personal-assistant-mode .name-input-section {
-    background: rgba(255, 255, 255, 0.15);
-    padding: 25px;
-    border-radius: 20px;
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.12);
+    padding: 20px;
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
     position: relative;
     z-index: 1;
+}
+
+/* Center logo on welcome screen */
+.center-logo {
+    font-size: 44px;
+    text-align: center;
+    width: 72px;
+    height: 72px;
+    line-height: 72px;
+    margin: 12px auto;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    filter: brightness(0) invert(1);
+}
+
+/* Make overall welcome screen sleeker: reduce heavy rounding/shadows */
+#welcome-screen .persona-description {
+    opacity: 0.95;
+    font-size: 0.95em;
+    margin-top: 8px;
+}
+
+#welcome-screen h1 {
+    font-weight: 500;
+    margin-bottom: 6px;
 }
 
 body.personal-assistant-mode .name-input-section label {
@@ -817,13 +843,13 @@ body.personal-assistant-mode #new-username:focus {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Top Header Bar */
+/* Top Header Bar (color varies by mode) */
 #top-header {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    background: linear-gradient(135deg, #00695c 0%, #00897b 100%) !important;
+    background: linear-gradient(135deg, #00695c 0%, #00897b 100%);
     color: white !important;
     padding: 8px 20px !important;
     display: flex !important;
@@ -833,6 +859,16 @@ body.personal-assistant-mode #new-username:focus {
     z-index: 10001 !important;
     height: 44px !important;
     box-sizing: border-box !important;
+}
+
+/* Blue header when in Personal Assistant mode */
+body.personal-assistant-mode #top-header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1565c0 100%);
+}
+
+/* Green header for Sustainability mode (default) */
+body.sustainability-mode #top-header {
+    background: linear-gradient(135deg, #00695c 0%, #00897b 100%);
 }
 
 #top-header .header-left {
@@ -956,17 +992,17 @@ body.personal-assistant-mode #new-username:focus {
 /* Container takes full width and height minus header and input */
 /* Container uses natural height and centers via margin */
 .container { 
-    max-width: 98vw; 
-    width: 98%; 
+    max-width: 100vw; 
+    width: 100%; 
     background: #fff; 
-    border-radius: 20px; 
-    box-shadow: 0 5px 20px rgba(0,0,0,0.1); 
+    border-radius: 12px; 
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08); 
     display: flex;
     flex-direction: column;
-    margin: 45px auto 0 auto; /* removed bottom margin */
-    padding-bottom: 20px;
-    height: calc(100vh - 90px); /* ensure it fits within viewport */
-    overflow: hidden; /* ensure content respects rounded corners */
+    margin: 48px auto 0 auto;
+    padding-bottom: 0;
+    height: calc(100vh - 48px);
+    overflow: hidden;
 }
 
 /* Welcome Screen Styles */
@@ -1341,19 +1377,20 @@ body.personal-assistant-mode .video-context-label {
 /* Chat window: take remaining space */
 #chat-window { 
     height: calc(100vh - 120px); 
-    padding: 10px 10px 80px 10px; 
+    padding: 15px 10px 90px 10px; 
     background: #fafafa; 
     overflow-y: auto; 
     -webkit-overflow-scrolling: touch; 
     overscroll-behavior: contain; 
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    justify-content: flex-start;
+    gap: 6px;
 }
 
 .message-container {
     display: flex;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 }
 
 .user-msg, .bot-msg { 
@@ -1456,14 +1493,14 @@ body.personal-assistant-mode .video-context-label {
 }
 
 /* Input Area - Always visible at bottom */
-.input-area {
+#input-area {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
     background: white !important;
     border-top: 1px solid #e0e0e0;
-    padding: 8px !important;
+    padding: 0 !important;
     margin: 0 !important;
     z-index: 9999 !important;
     box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
@@ -1475,10 +1512,15 @@ body.personal-assistant-mode .video-context-label {
 .input-group { 
     display: flex; 
     align-items: center;
-    padding: 8px 10px; 
+    padding: 10px; 
     background: white;
     gap: 8px;
     overflow: hidden;
+    margin: 0;
+}
+
+#input-area .input-group {
+    margin: 0 !important;
 }
 
 .media-controls-inline {
@@ -1530,6 +1572,14 @@ body.personal-assistant-mode .video-context-label {
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: none;
+    flex-shrink: 0;
+    line-height: 1;
+    padding: 0;
+    text-align: center;
 }
 
 .media-btn-inline:hover {
@@ -1635,35 +1685,151 @@ body.personal-assistant-mode .video-context-label {
 /* Responsive Design */
 @media (max-width: 600px) {
     .container {
-        margin-bottom: 0; /* No bottom margin to prevent external scrolling */
-        height: calc(100vh - 90px);
+        margin: 44px auto 0 auto;
+        width: 100%;
+        max-width: 100vw;
+        height: calc(100vh - 44px);
+        border-radius: 0;
     }
+    
+    #chat-window {
+        height: calc(100vh - 110px);
+        padding: 10px 8px 85px 8px;
+    }
+    
     #welcome-screen { 
-        padding: 20px 16px; /* Reduced padding for mobile */
+        padding: 20px 16px;
+        height: calc(100vh - 110px);
     }
-    #camera-video { max-height: 400px; }
-    #preview-image, #preview-video { max-height: 400px; }
-    .user-msg, .bot-msg { max-width: 85%; }
-    .speaker-btn {
-        width: 28px;
-        height: 28px;
-        font-size: 12px;
-        right: -8px;
-    }
-    .input-group { 
+    
+    #camera-video { max-height: 300px; }
+    #preview-image, #preview-video { max-height: 300px; }
+    
+    .user-msg, .bot-msg { 
+        max-width: 90%;
         padding: 12px 16px;
+        font-size: 0.95em;
+    }
+    
+    .speaker-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 11px;
+        right: -6px;
+        top: 4px;
+    }
+    
+    .input-group { 
+        padding: 8px 10px;
+        gap: 6px;
+    }
+    
+    .media-controls-inline { 
+        gap: 6px; 
+    }
+    
+    .media-btn-inline { 
+        width: 38px; 
+        height: 38px; 
+        font-size: 1.1em;
+    }
+    
+    .mic-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
+        margin-right: 6px;
+    }
+    
+    .send-btn {
+        width: 42px;
+        height: 42px;
+    }
+    
+    #user-input { 
+        font-size: 16px;
+        padding: 12px 16px;
+    }
+    
+    .media-preview-content {
+        margin: 8px;
+    }
+    
+    .message-container {
+        margin-bottom: 6px;
+    }
+    
+    #top-header {
+        height: 44px;
+        padding: 6px 12px;
+        font-size: 0.9em;
+    }
+    
+    #top-header .header-left {
+        font-size: 1em;
+        left: 12px;
+    }
+    
+    #top-header .header-right {
+        right: 12px;
         gap: 8px;
     }
-    .media-controls-inline { gap: 8px; }
-    .media-btn-inline { 
-        width: 40px; 
-        height: 40px; 
-        font-size: 1.2em;
-        border-radius: 50%;
+    
+    .back-btn {
+        padding: 4px 10px;
+        font-size: 0.8em;
+        height: 26px;
     }
-    #user-input { font-size: 16px; } /* Prevent zoom on iOS */
-    .media-preview-content {
-        margin: 10px;
+    
+    .locket-status {
+        padding: 3px 8px;
+        font-size: 0.75em;
+    }
+    
+    .mode-toggle-container {
+        top: 10px;
+        right: 12px;
+    }
+    
+    .mode-toggle-label {
+        padding: 6px 10px;
+    }
+    
+    .mode-toggle-text {
+        font-size: 0.85em;
+        margin-right: 8px;
+    }
+    
+    /* Auth screens mobile optimization */
+    #login-screen, #register-screen {
+        padding: 20px 16px;
+    }
+    
+    #login-screen h1, #register-screen h1 {
+        font-size: 2em;
+    }
+    
+    .auth-form {
+        padding: 30px 20px;
+    }
+    
+    .input-group label {
+        font-size: 0.9em;
+    }
+    
+    .input-group input {
+        padding: 12px 14px;
+        font-size: 0.95em;
+    }
+    
+    .primary-btn {
+        padding: 14px;
+        font-size: 1em;
+    }
+    
+    .secondary-btn {
+        padding: 12px;
+        font-size: 0.95em;
     }
 }
 
@@ -1675,7 +1841,11 @@ body.personal-assistant-mode .video-context-label {
     text-align: center;
     max-width: 450px;
     margin: 0 auto;
-    padding: 60px 20px;
+    padding: 40px 20px 20px 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 #login-screen h1, #register-screen h1 {
@@ -1686,6 +1856,12 @@ body.personal-assistant-mode .video-context-label {
     margin-bottom: 10px;
     font-size: 2.5em;
     font-weight: 700;
+    filter: grayscale(0);
+}
+
+#login-screen h1::first-letter, #register-screen h1::first-letter {
+    filter: hue-rotate(0deg) saturate(0%) brightness(0.6);
+    color: #00695c;
 }
 
 #login-screen p, #register-screen p {
@@ -1698,14 +1874,23 @@ body.personal-assistant-mode .video-context-label {
 .auth-form {
     background: white;
     padding: 40px;
-    border-radius: 20px 20px 50px 50px;
-    box-shadow: 0 10px 40px rgba(0, 105, 92, 0.15);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 105, 92, 0.12);
     border: 1px solid rgba(0, 105, 92, 0.1);
 }
 
 .input-group {
     margin-bottom: 20px;
     text-align: left;
+}
+
+#input-area .input-group {
+    margin-bottom: 0 !important;
+}
+
+#input-area .input-group label {
+    display: inline-flex !important;
+    margin-bottom: 0 !important;
 }
 
 .input-group label {

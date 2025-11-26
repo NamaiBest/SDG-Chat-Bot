@@ -1855,15 +1855,17 @@ function toggleMode() {
     // Update UI theme and input sections
     if (isPersonalAssistantMode) {
         document.body.classList.add('personal-assistant-mode');
-        mainTitle.innerHTML = '🤖 Welcome to Personal Assistant';
-        mainSubtitle.innerHTML = 'Your intelligent companion for environment analysis and meal planning!';
+        document.body.classList.remove('sustainability-mode');
+        mainTitle.innerHTML = '🌱 Personal Assistant Mode';
+        mainSubtitle.innerHTML = 'Your intelligent companion for everyday needs, offering psychological assessment and a smart memory chain-of-thought.';
         sustainabilityInput.style.display = 'none';
         assistantInput.style.display = 'block';
         loadUserProfiles();
         localStorage.setItem('sdg_chat_mode', 'personal-assistant');
     } else {
         document.body.classList.remove('personal-assistant-mode');
-        mainTitle.innerHTML = '🌱 Welcome to SDG Teacher Chatbot';
+        document.body.classList.add('sustainability-mode');
+        mainTitle.innerHTML = '🌱 Sustainability Teacher Mode';
         mainSubtitle.innerHTML = 'Your personal guide to ethics, sustainability, and UN SDG goals!';
         sustainabilityInput.style.display = 'block';
         assistantInput.style.display = 'none';

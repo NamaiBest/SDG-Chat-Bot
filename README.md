@@ -1,21 +1,23 @@
 # 🌱 SDG Teacher & Multi-Persona AI Assistant
 
-A powerful dual-mode intelligent chatbot powered by Google's Gemini AI. Switch between **Sustainability Teacher** mode for ethics and UN SDG education, or **Multi-Persona Assistant** mode featuring six specialized AI personalities (Chef, Teacher, Tech, Motivation, Finance, Knowledge) that automatically switch based on your needs. Features personalized video analysis, advanced conversation memory, multimodal capabilities, and **ESP32-CAM wearable integration** for hands-free AI assistance.
+A powerful dual-mode intelligent chatbot powered by Google's Gemini AI. Switch between **Sustainability Teacher** mode for ethics and UN SDG education, or **Multi-Persona Assistant** mode featuring six specialized AI personalities (Chef, Teacher, Tech, Motivation, Finance, Knowledge) that automatically switch based on your needs. Features personalized video analysis, advanced conversation memory, multimodal capabilities, and **AI Locket (ESP32-CAM wearable)** integration for hands-free AI assistance anywhere.
 
 ## ✨ Features
 
-### 📱 ESP32-CAM Wearable Integration (NEW!)
-- **🎤 Wake Word Activation**: Say "start capture" to trigger hands-free recording
-- **📹 Automatic Video Recording**: 12-second video capture with simultaneous audio
-- **🎧 Bluetooth Earbuds**: Wireless audio input/output via Bluetooth A2DP
-- **🔗 Device Auto-Linking**: Link ESP32 device to your account once, no repeated login needed
-- **🌐 WiFi Communication**: Automatic sync with Railway server
-- **💾 Shared Memory**: Same conversation history across web interface and wearable device
-- **🔋 Battery Powered**: LiPo battery with TP4056 charging for portable use
-- **📊 Visual Analysis**: AI analyzes what the camera sees and responds with context-aware answers
-- **🎯 Personal Assistant Mode**: Wearable device automatically uses Personal Assistant mode for quick help
+### 📱 AI Locket - ESP32-CAM Wearable Integration
+- **🎤 Voice-Activated**: Say "start capture" for hands-free recording - no buttons needed
+- **📹 Smart Video Capture**: 12-second automatic video recording with simultaneous audio
+- **🎧 Bluetooth Audio**: Wireless communication via Bluetooth A2DP earbuds (input & output)
+- **🔗 One-Time Device Linking**: Register your ESP32 device once - no repeated logins required
+- **🌐 WiFi Sync**: Automatic synchronization with server over WiFi
+- **💾 Unified Memory**: Shared conversation history across web interface and wearable device
+- **🔋 Portable Power**: LiPo battery with TP4056 charging for all-day wearability
+- **📊 Visual AI**: Analyzes what you see and provides context-aware responses
+- **🎯 Intelligent Routing**: Automatically uses Personal Assistant mode for quick, practical help
+- **✨ Markdown Formatting**: Bold, italic, and formatted text in AI responses
+- **📱 Mobile-Optimized**: Responsive interface works great on phones and tablets
 
-See **[ESP32_SETUP_GUIDE.md](ESP32_SETUP_GUIDE.md)** for complete hardware setup instructions and **[ESP32_INTEGRATION_SUMMARY.md](ESP32_INTEGRATION_SUMMARY.md)** for deployment details.
+See **[ESP32_SETUP_GUIDE.md](ESP32_SETUP_GUIDE.md)** for hardware setup and **[ESP32_INTEGRATION_SUMMARY.md](ESP32_INTEGRATION_SUMMARY.md)** for deployment details.
 
 ### 👤 User Authentication System
 - **👤 User Accounts**: Secure registration and login system
@@ -57,11 +59,15 @@ See **[ESP32_SETUP_GUIDE.md](ESP32_SETUP_GUIDE.md)** for complete hardware setup
 
 ### 🎨 Professional Interface
 - 🎯 **Modern UI**: Clean, responsive design with smooth animations
-- 📱 **Mobile friendly**: Optimized for all devices with touch-friendly controls  
-- 🖼️ **Media preview**: Corner preview system for captured media
-- 📝 **Markdown support**: Rich text formatting in responses
-- ↩️ **Navigation**: Easy return to main page from chat interface
+- 📱 **Mobile optimized**: Full responsive design for phones and tablets
+- 🌈 **Mode-based theming**: Blue gradient for Personal Assistant, green for Sustainability Teacher
+- 🖼️ **Media preview**: Corner preview system for captured media with clear/remove controls
+- 📝 **Markdown support**: Rich text formatting in responses (bold, italic, code)
+- ↩️ **Intuitive navigation**: Fixed header with back button and mode toggle
 - 🎭 **Modal system**: Elegant profile creation with background collection
+- 📏 **Optimized spacing**: Compact, efficient use of screen space
+- 🔘 **Aligned controls**: Perfectly aligned media buttons (camera, video, file upload)
+- 💬 **Smart input bar**: Fixed to bottom with no gaps, always accessible
 
 ## 🚀 Quick Start
 
