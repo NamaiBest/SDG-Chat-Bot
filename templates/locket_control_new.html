@@ -142,8 +142,8 @@
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
             transition: all 0.3s ease;
-            margin: 10px 0;
-            position: relative;
+            margin-left: 15px;
+            vertical-align: middle;
         }
         
         .manual-play-btn:hover {
@@ -153,18 +153,6 @@
         
         .manual-play-btn:active {
             transform: scale(0.95);
-        }
-        
-        .manual-play-btn::after {
-            content: 'Tap to play';
-            position: absolute;
-            bottom: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 11px;
-            white-space: nowrap;
-            color: #666;
-            font-weight: normal;
         }
 
         .back-link {
@@ -760,7 +748,7 @@
                             document.getElementById('responseText').innerHTML = formatMarkdown(data.response);
                             responseContainer.classList.add('show');
                             
-                            // Add manual play button for mobile devices (especially iOS)
+                            // Add manual play button for mobile devices (especially iOS) AFTER the text
                             if (isMobile && data.audio_url) {
                                 const manualPlayBtn = document.createElement('button');
                                 manualPlayBtn.className = 'manual-play-btn';
@@ -778,8 +766,8 @@
                                         manualPlayBtn.title = 'Play response aloud';
                                     }
                                 };
-                                // Add button at the top of response container
-                                responseContainer.insertBefore(manualPlayBtn, responseText);
+                                // Add button AFTER the response text
+                                responseText.appendChild(manualPlayBtn);
                             }
                             
                             // Auto-read response if enabled
@@ -928,7 +916,7 @@
                     responseText.innerHTML = formatMarkdown(data.response || data.text || 'Response received');
                     responseContainer.classList.add('show');
                     
-                    // Add manual play button for mobile devices (especially iOS)
+                    // Add manual play button for mobile devices (especially iOS) AFTER the text
                     if (isMobile && data.audio_url) {
                         const manualPlayBtn = document.createElement('button');
                         manualPlayBtn.className = 'manual-play-btn';
@@ -946,8 +934,8 @@
                                 manualPlayBtn.title = 'Play response aloud';
                             }
                         };
-                        // Add button at the top of response container
-                        responseContainer.insertBefore(manualPlayBtn, responseText);
+                        // Add button AFTER the response text
+                        responseText.appendChild(manualPlayBtn);
                     }
                     
                     // Auto-read response if enabled (skip Web Speech on iOS, use server audio)
