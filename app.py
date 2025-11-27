@@ -1176,8 +1176,26 @@ async def upload_locket_audio(
             "timestamp": datetime.now().isoformat()
         })
         
-        # Build prompt for Gemini
+        # Build prompt for Gemini with LOCKET-SPECIFIC persona layer
+        # Load locket persona as top priority
+        locket_persona = load_persona("locket_visual_assistant")
+        locket_instructions = ""
+        if locket_persona and "prompt_template" in locket_persona:
+            locket_instructions = locket_persona["prompt_template"] + "\n\n" + "===== LOCKET MODE ACTIVE: Follow the rules above strictly =====\n\n"
+        else:
+            # Fallback locket instructions
+            locket_instructions = """LOCKET MODE: You are analyzing real-world visuals through a wearable camera. 
+            - Answer ONLY the specific question asked about the object shown
+            - If person visible: ONE brief sentence about mood (e.g., 'You look happy!'), then answer their question
+            - SKIP background descriptions (room, table, surroundings)
+            - Keep responses 2-4 sentences, focused and practical
+            - Don't describe everything you see - focus on what they're asking about
+            
+            ===== LOCKET MODE ACTIVE =====\n\n"""
+        
         system_prompt = get_personal_assistant_prompt(username)
+        # Prepend locket instructions as top layer
+        system_prompt = locket_instructions + system_prompt
         
         if video_frames:
             # Include video analysis in prompt
@@ -1284,10 +1302,13 @@ async def upload_locket_audio(
             "input": {"text": ai_message},
             "voice": {
                 "languageCode": "en-US",
-                "name": "en-US-Neural2-F"  # Female voice
+                "name": "en-US-Wavenet-F",  # WaveNet for more natural speech (upgraded from Neural2)
+                "ssmlGender": "FEMALE"
             },
             "audioConfig": {
-                "audioEncoding": "MP3"
+                "audioEncoding": "MP3",
+                "speakingRate": 1.0,  # Natural speaking pace
+                "pitch": 0.0  # Natural pitch
             }
         }
         

@@ -1407,6 +1407,24 @@ body.personal-assistant-mode .video-context-label {
     color: white;
     margin-left: auto;
     border-bottom-right-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Media indicator styling */
+.media-indicator {
+    display: inline-block;
+    font-size: 0.85em;
+    opacity: 0.9;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.message-text {
+    display: block;
 }
 
 .bot-msg { 

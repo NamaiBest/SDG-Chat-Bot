@@ -283,6 +283,7 @@
             width: 100%;
             height: auto;
             display: block;
+            transform: rotate(180deg);
         }
 
         .frame-label {
@@ -344,6 +345,18 @@
         @keyframes blink {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
+        }
+
+        @media (max-width: 600px) {
+            #locketStatusText {
+                display: none !important;
+            }
+            #status {
+                display: none !important;
+            }
+            .info {
+                display: none !important;
+            }
         }
     </style>
 </head>

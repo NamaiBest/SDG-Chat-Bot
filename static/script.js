@@ -885,7 +885,7 @@ function convertMarkdownToHtml(text) {
     return text;
 }
 
-function appendMessage(role, text, animate = true, isLocket = false) {
+function appendMessage(role, text, animate = true, isLocket = false, mediaType = null) {
     const messageContainer = document.createElement('div');
     messageContainer.className = 'message-container';
     
@@ -914,7 +914,27 @@ function appendMessage(role, text, animate = true, isLocket = false) {
         msgDiv.appendChild(speakerBtn);
         msgDiv.appendChild(contentDiv);
     } else {
-        msgDiv.textContent = text;
+        // Add media indicator for user messages if present
+        if (mediaType) {
+            const mediaIndicator = document.createElement('span');
+            mediaIndicator.className = 'media-indicator';
+            if (mediaType === 'video') {
+                mediaIndicator.innerHTML = '📹 Video sent';
+            } else if (mediaType === 'image') {
+                mediaIndicator.innerHTML = '📷 Image sent';
+            }
+            msgDiv.appendChild(mediaIndicator);
+            
+            // Add text if present
+            if (text && text.trim()) {
+                const textSpan = document.createElement('span');
+                textSpan.className = 'message-text';
+                textSpan.textContent = text;
+                msgDiv.appendChild(textSpan);
+            }
+        } else {
+            msgDiv.textContent = text;
+        }
     }
     
     messageContainer.appendChild(msgDiv);
@@ -1146,20 +1166,21 @@ async function loadConversationHistory() {
             allMessages.forEach((msg, index) => {
                 // Check if this is a locket message
                 const isLocket = msg.locket === true;
+                const mediaType = msg.media_type || null;
                 
                 // Handle different message formats
                 // Format 1: Regular chat (user_message + bot_response)
                 if (msg.user_message) {
-                    appendMessage('user', msg.user_message, false, isLocket);
+                    appendMessage('user', msg.user_message, false, isLocket, mediaType);
                     if (msg.bot_response) {
-                        appendMessage('bot', msg.bot_response, false, isLocket);
+                        appendMessage('bot', msg.bot_response, false, isLocket, null);
                     }
                 }
                 // Format 2: Locket messages (role + content)
                 else if (msg.role === 'user' && msg.content) {
-                    appendMessage('user', msg.content, false, isLocket);
+                    appendMessage('user', msg.content, false, isLocket, mediaType);
                 } else if (msg.role === 'assistant' && msg.content) {
-                    appendMessage('bot', msg.content, false, isLocket);
+                    appendMessage('bot', msg.content, false, isLocket, null);
                 }
             });
             return true; // Found conversation history
@@ -1622,12 +1643,13 @@ chatForm.addEventListener('submit', async (e) => {
     stopSpeaking();
     
     if (message) {
-        appendMessage('user', message);
+        // Pass media type if media is attached
+        appendMessage('user', message, true, false, currentMediaType);
         userInput.value = '';
     } else if (currentMediaData && currentMediaType === 'video') {
-        appendMessage('user', '🎥 Sent a video');
+        appendMessage('user', '', true, false, 'video');
     } else if (currentMediaData && currentMediaType === 'image') {
-        appendMessage('user', '🖼️ Sent an image');
+        appendMessage('user', '', true, false, 'image');
     }
     
     // Show typing indicator
