@@ -126,6 +126,34 @@
             margin-bottom: 15px;
             line-height: 1.6;
         }
+        
+        /* Manual play button for iOS */
+        .manual-play-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        
+        .manual-play-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.6);
+        }
+        
+        .manual-play-btn:active {
+            transform: scale(0.95);
+        }
 
         .back-link {
             display: inline-block;
@@ -716,6 +744,25 @@
                             document.getElementById('responseText').innerHTML = formatMarkdown(data.response);
                             responseContainer.classList.add('show');
                             
+                            // Add manual play button for iOS/mobile next to response
+                            if (isIOS && data.audio_url) {
+                                const manualPlayBtn = document.createElement('button');
+                                manualPlayBtn.className = 'manual-play-btn';
+                                manualPlayBtn.innerHTML = '🔊';
+                                manualPlayBtn.title = 'Play response aloud';
+                                manualPlayBtn.onclick = () => {
+                                    const audio = document.getElementById('audioPlayer');
+                                    if (audio.paused) {
+                                        audio.play();
+                                        manualPlayBtn.innerHTML = '⏸️';
+                                    } else {
+                                        audio.pause();
+                                        manualPlayBtn.innerHTML = '🔊';
+                                    }
+                                };
+                                responseText.appendChild(manualPlayBtn);
+                            }
+                            
                             // Auto-read response if enabled
                             speakText(data.response);
                             
@@ -724,15 +771,19 @@
                                 const audioPlayer = document.getElementById('audioPlayer');
                                 audioPlayer.src = data.audio_url;
                                 audioPlayer.load();
-                                const playPromise = audioPlayer.play();
-                                if (playPromise !== undefined) {
-                                    playPromise.catch(e => {
-                                        log(`⚠️ Audio playback error: ${e.message}`);
-                                        audioPlayer.controls = true;
-                                        if (isIOS) {
-                                            log('📱 iOS: Tap audio controls to play');
-                                        }
-                                    });
+                                
+                                // Auto-play if auto-read is enabled
+                                if (autoReadToggle.checked) {
+                                    const playPromise = audioPlayer.play();
+                                    if (playPromise !== undefined) {
+                                        playPromise.catch(e => {
+                                            log(`⚠️ Audio playback error: ${e.message}`);
+                                            audioPlayer.controls = true;
+                                        });
+                                    }
+                                } else {
+                                    // Show controls if auto-read is off
+                                    audioPlayer.controls = true;
                                 }
                             }
                         }
@@ -861,6 +912,25 @@
                     responseText.innerHTML = formatMarkdown(data.response || data.text || 'Response received');
                     responseContainer.classList.add('show');
                     
+                    // Add manual play button for iOS/mobile next to response
+                    if (isIOS && data.audio_url) {
+                        const manualPlayBtn = document.createElement('button');
+                        manualPlayBtn.className = 'manual-play-btn';
+                        manualPlayBtn.innerHTML = '🔊';
+                        manualPlayBtn.title = 'Play response aloud';
+                        manualPlayBtn.onclick = () => {
+                            const audio = document.getElementById('audioPlayer');
+                            if (audio.paused) {
+                                audio.play();
+                                manualPlayBtn.innerHTML = '⏸️';
+                            } else {
+                                audio.pause();
+                                manualPlayBtn.innerHTML = '🔊';
+                            }
+                        };
+                        responseText.appendChild(manualPlayBtn);
+                    }
+                    
                     // Auto-read response if enabled (skip Web Speech on iOS, use server audio)
                     speakText(data.response || data.text);
                     
@@ -870,29 +940,22 @@
                         audioPlayer.style.display = 'block';
                         audioPlayer.load();
                         
-                        // iOS requires user interaction for autoplay, but we just had one (stop recording)
-                        // Try to play, and if it fails, show controls for manual play
-                        const playPromise = audioPlayer.play();
-                        if (playPromise !== undefined) {
-                            playPromise
-                                .then(() => {
-                                    log('🔊 Audio playing automatically');
-                                })
-                                .catch(e => {
-                                    log('⚠️ Autoplay blocked - showing controls');
-                                    audioPlayer.controls = true;
-                                    // On iOS, create a visual play button
-                                    if (isIOS) {
-                                        const playBtn = document.createElement('button');
-                                        playBtn.textContent = '🔊 Tap to Play Response';
-                                        playBtn.style.cssText = 'width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; margin: 10px 0; cursor: pointer;';
-                                        playBtn.onclick = () => {
-                                            audioPlayer.play();
-                                            playBtn.remove();
-                                        };
-                                        responseContainer.insertBefore(playBtn, audioPlayer);
-                                    }
-                                });
+                        // Auto-play if auto-read is enabled
+                        if (autoReadToggle.checked) {
+                            const playPromise = audioPlayer.play();
+                            if (playPromise !== undefined) {
+                                playPromise
+                                    .then(() => {
+                                        log('🔊 Audio playing automatically');
+                                    })
+                                    .catch(e => {
+                                        log('⚠️ Autoplay blocked - use manual play button');
+                                        audioPlayer.controls = true;
+                                    });
+                            }
+                        } else {
+                            // Show controls if auto-read is off
+                            audioPlayer.controls = true;
                         }
                     }
                     
