@@ -440,7 +440,7 @@
 
         <div id="responseContainer" class="response-container">
             <div id="responseText" class="response-text"></div>
-            <audio id="audioPlayer" controls style="width: 100%; margin-top: 10px;"></audio>
+            <audio id="audioPlayer" style="display: none;"></audio>
         </div>
 
                 <div class="debug-log" id="debugLog"></div>
@@ -760,7 +760,7 @@
                             document.getElementById('responseText').innerHTML = formatMarkdown(data.response);
                             responseContainer.classList.add('show');
                             
-                            // Add manual play button for mobile devices next to response
+                            // Add manual play button for mobile devices (especially iOS)
                             if (isMobile && data.audio_url) {
                                 const manualPlayBtn = document.createElement('button');
                                 manualPlayBtn.className = 'manual-play-btn';
@@ -778,7 +778,7 @@
                                         manualPlayBtn.title = 'Play response aloud';
                                     }
                                 };
-                                // Add button before the response text
+                                // Add button at the top of response container
                                 responseContainer.insertBefore(manualPlayBtn, responseText);
                             }
                             
@@ -789,6 +789,7 @@
                             if (data.audio_url) {
                                 const audioPlayer = document.getElementById('audioPlayer');
                                 audioPlayer.src = data.audio_url;
+                                audioPlayer.style.display = 'none';
                                 audioPlayer.load();
                                 
                                 // Auto-play if auto-read is enabled
@@ -797,12 +798,8 @@
                                     if (playPromise !== undefined) {
                                         playPromise.catch(e => {
                                             log(`⚠️ Audio playback error: ${e.message}`);
-                                            audioPlayer.controls = true;
                                         });
                                     }
-                                } else {
-                                    // Show controls if auto-read is off
-                                    audioPlayer.controls = true;
                                 }
                             }
                         }
@@ -931,7 +928,7 @@
                     responseText.innerHTML = formatMarkdown(data.response || data.text || 'Response received');
                     responseContainer.classList.add('show');
                     
-                    // Add manual play button for mobile devices next to response
+                    // Add manual play button for mobile devices (especially iOS)
                     if (isMobile && data.audio_url) {
                         const manualPlayBtn = document.createElement('button');
                         manualPlayBtn.className = 'manual-play-btn';
@@ -949,7 +946,7 @@
                                 manualPlayBtn.title = 'Play response aloud';
                             }
                         };
-                        // Add button before the response text
+                        // Add button at the top of response container
                         responseContainer.insertBefore(manualPlayBtn, responseText);
                     }
                     
@@ -959,7 +956,7 @@
                     // Play audio response if available
                     if (data.audio_url) {
                         audioPlayer.src = data.audio_url;
-                        audioPlayer.style.display = 'block';
+                        audioPlayer.style.display = 'none';
                         audioPlayer.load();
                         
                         // Auto-play if auto-read is enabled
@@ -972,12 +969,8 @@
                                     })
                                     .catch(e => {
                                         log('⚠️ Autoplay blocked - use manual play button');
-                                        audioPlayer.controls = true;
                                     });
                             }
-                        } else {
-                            // Show controls if auto-read is off
-                            audioPlayer.controls = true;
                         }
                     }
                     
