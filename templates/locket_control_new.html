@@ -132,27 +132,39 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 50%;
-            font-size: 20px;
+            font-size: 24px;
             cursor: pointer;
-            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
             transition: all 0.3s ease;
-            margin-left: 10px;
-            vertical-align: middle;
+            margin: 10px 0;
+            position: relative;
         }
         
         .manual-play-btn:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.6);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.7);
         }
         
         .manual-play-btn:active {
             transform: scale(0.95);
+        }
+        
+        .manual-play-btn::after {
+            content: 'Tap to play';
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            white-space: nowrap;
+            color: #666;
+            font-weight: normal;
         }
 
         .back-link {
@@ -461,6 +473,10 @@
         let isDebugMode = false;
         let debugStartTime = null;
 
+        // Detect iOS and mobile devices
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
         const status = document.getElementById('status');
         const micIndicator = document.getElementById('micIndicator');
         const info = document.getElementById('info');
@@ -744,8 +760,8 @@
                             document.getElementById('responseText').innerHTML = formatMarkdown(data.response);
                             responseContainer.classList.add('show');
                             
-                            // Add manual play button for iOS/mobile next to response
-                            if (isIOS && data.audio_url) {
+                            // Add manual play button for mobile devices next to response
+                            if (isMobile && data.audio_url) {
                                 const manualPlayBtn = document.createElement('button');
                                 manualPlayBtn.className = 'manual-play-btn';
                                 manualPlayBtn.innerHTML = '🔊';
@@ -755,12 +771,15 @@
                                     if (audio.paused) {
                                         audio.play();
                                         manualPlayBtn.innerHTML = '⏸️';
+                                        manualPlayBtn.title = 'Pause';
                                     } else {
                                         audio.pause();
                                         manualPlayBtn.innerHTML = '🔊';
+                                        manualPlayBtn.title = 'Play response aloud';
                                     }
                                 };
-                                responseText.appendChild(manualPlayBtn);
+                                // Add button before the response text
+                                responseContainer.insertBefore(manualPlayBtn, responseText);
                             }
                             
                             // Auto-read response if enabled
@@ -912,8 +931,8 @@
                     responseText.innerHTML = formatMarkdown(data.response || data.text || 'Response received');
                     responseContainer.classList.add('show');
                     
-                    // Add manual play button for iOS/mobile next to response
-                    if (isIOS && data.audio_url) {
+                    // Add manual play button for mobile devices next to response
+                    if (isMobile && data.audio_url) {
                         const manualPlayBtn = document.createElement('button');
                         manualPlayBtn.className = 'manual-play-btn';
                         manualPlayBtn.innerHTML = '🔊';
@@ -923,12 +942,15 @@
                             if (audio.paused) {
                                 audio.play();
                                 manualPlayBtn.innerHTML = '⏸️';
+                                manualPlayBtn.title = 'Pause';
                             } else {
                                 audio.pause();
                                 manualPlayBtn.innerHTML = '🔊';
+                                manualPlayBtn.title = 'Play response aloud';
                             }
                         };
-                        responseText.appendChild(manualPlayBtn);
+                        // Add button before the response text
+                        responseContainer.insertBefore(manualPlayBtn, responseText);
                     }
                     
                     // Auto-read response if enabled (skip Web Speech on iOS, use server audio)
