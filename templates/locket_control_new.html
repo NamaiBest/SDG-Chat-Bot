@@ -481,6 +481,12 @@
 
         // Text-to-speech function with natural voice
         function speakText(text) {
+            // On iOS, Web Speech API is unreliable - rely on server audio instead
+            if (isIOS) {
+                log('📱 iOS: Using server audio instead of Web Speech API');
+                return;
+            }
+            
             if (!autoReadToggle.checked || !text) return;
 
             // Cancel any ongoing speech
@@ -718,7 +724,16 @@
                                 const audioPlayer = document.getElementById('audioPlayer');
                                 audioPlayer.src = data.audio_url;
                                 audioPlayer.load();
-                                audioPlayer.play().catch(e => log(`⚠️ Audio playback error: ${e.message}`));
+                                const playPromise = audioPlayer.play();
+                                if (playPromise !== undefined) {
+                                    playPromise.catch(e => {
+                                        log(`⚠️ Audio playback error: ${e.message}`);
+                                        audioPlayer.controls = true;
+                                        if (isIOS) {
+                                            log('📱 iOS: Tap audio controls to play');
+                                        }
+                                    });
+                                }
                             }
                         }
                         
@@ -846,7 +861,7 @@
                     responseText.innerHTML = formatMarkdown(data.response || data.text || 'Response received');
                     responseContainer.classList.add('show');
                     
-                    // Auto-read response if enabled
+                    // Auto-read response if enabled (skip Web Speech on iOS, use server audio)
                     speakText(data.response || data.text);
                     
                     // Play audio response if available
@@ -854,7 +869,31 @@
                         audioPlayer.src = data.audio_url;
                         audioPlayer.style.display = 'block';
                         audioPlayer.load();
-                        audioPlayer.play().catch(e => log(`⚠️ Audio playback error: ${e.message}`));
+                        
+                        // iOS requires user interaction for autoplay, but we just had one (stop recording)
+                        // Try to play, and if it fails, show controls for manual play
+                        const playPromise = audioPlayer.play();
+                        if (playPromise !== undefined) {
+                            playPromise
+                                .then(() => {
+                                    log('🔊 Audio playing automatically');
+                                })
+                                .catch(e => {
+                                    log('⚠️ Autoplay blocked - showing controls');
+                                    audioPlayer.controls = true;
+                                    // On iOS, create a visual play button
+                                    if (isIOS) {
+                                        const playBtn = document.createElement('button');
+                                        playBtn.textContent = '🔊 Tap to Play Response';
+                                        playBtn.style.cssText = 'width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; margin: 10px 0; cursor: pointer;';
+                                        playBtn.onclick = () => {
+                                            audioPlayer.play();
+                                            playBtn.remove();
+                                        };
+                                        responseContainer.insertBefore(playBtn, audioPlayer);
+                                    }
+                                });
+                        }
                     }
                     
                     // Fetch and display video frames if session ID is available
