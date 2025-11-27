@@ -149,6 +149,77 @@
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
         }
 
+        /* Auto-read toggle */
+        .auto-read-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 15px;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            display: none;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #ccc;
+            border-radius: 26px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: #667eea;
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(22px);
+        }
+
+        .speaking-indicator {
+            display: none;
+            color: #667eea;
+            font-size: 12px;
+            animation: pulse 1.5s infinite;
+        }
+
+        .speaking-indicator.active {
+            display: inline;
+        }
+
         .debug-log {
             margin-top: 20px;
             padding: 15px;
@@ -278,6 +349,17 @@
 </head>
 <body>
     <a href="javascript:history.back()" class="back-link">← Back to Chat</a>
+    
+    <!-- Auto-read toggle -->
+    <div class="auto-read-toggle">
+        <span>🔊 Auto-read</span>
+        <label class="toggle-switch">
+            <input type="checkbox" id="autoReadToggle">
+            <span class="toggle-slider"></span>
+        </label>
+        <span class="speaking-indicator" id="speakingIndicator">Speaking...</span>
+    </div>
+    
     <div class="container">
         <h1>🌱 AI Locket</h1>
         
@@ -345,6 +427,12 @@
         const responseText = document.getElementById('responseText');
         const audioPlayer = document.getElementById('audioPlayer');
         const debugLog = document.getElementById('debugLog');
+        const autoReadToggle = document.getElementById('autoReadToggle');
+        const speakingIndicator = document.getElementById('speakingIndicator');
+
+        // Text-to-speech variables
+        let speechSynthesis = window.speechSynthesis;
+        let currentUtterance = null;
 
         // Get username from session storage
         username = sessionStorage.getItem('username');
@@ -352,6 +440,21 @@
             info.textContent = 'Please login first';
             setTimeout(() => window.location.href = '/', 2000);
         }
+
+        // Load auto-read preference
+        const savedAutoRead = localStorage.getItem('autoReadEnabled');
+        if (savedAutoRead === 'true') {
+            autoReadToggle.checked = true;
+        }
+
+        // Save auto-read preference
+        autoReadToggle.addEventListener('change', () => {
+            localStorage.setItem('autoReadEnabled', autoReadToggle.checked);
+            if (!autoReadToggle.checked && currentUtterance) {
+                speechSynthesis.cancel();
+                speakingIndicator.classList.remove('active');
+            }
+        });
 
         // Format markdown text (bold, italic, etc.)
         function formatMarkdown(text) {
@@ -361,6 +464,75 @@
                 .replace(/\*(.+?)\*/g, '<em>$1</em>')  // Italic
                 .replace(/\n/g, '<br>')  // Line breaks
                 .replace(/`(.+?)`/g, '<code>$1</code>');  // Inline code
+        }
+
+        // Text-to-speech function with natural voice
+        function speakText(text) {
+            if (!autoReadToggle.checked || !text) return;
+
+            // Cancel any ongoing speech
+            speechSynthesis.cancel();
+
+            // Strip HTML tags for TTS
+            const plainText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+            
+            currentUtterance = new SpeechSynthesisUtterance(plainText);
+            
+            // Configure voice for more natural sound
+            const voices = speechSynthesis.getVoices();
+            
+            // Prefer high-quality female voices (more natural sounding)
+            const preferredVoices = [
+                'Samantha', 'Karen', 'Victoria', 'Zira',  // English voices
+                'Google US English', 'Google UK English Female',
+                'Microsoft Zira Desktop', 'Microsoft David Desktop',
+                'Alex', 'Fiona'
+            ];
+            
+            // Try to find a preferred voice
+            let selectedVoice = voices.find(voice => 
+                preferredVoices.some(pref => voice.name.includes(pref))
+            );
+            
+            // Fallback to any English voice if preferred not found
+            if (!selectedVoice) {
+                selectedVoice = voices.find(voice => voice.lang.startsWith('en'));
+            }
+            
+            if (selectedVoice) {
+                currentUtterance.voice = selectedVoice;
+            }
+            
+            // Configure speech parameters for natural sound
+            currentUtterance.rate = 0.95;     // Slightly slower for clarity
+            currentUtterance.pitch = 1.05;     // Slightly higher pitch
+            currentUtterance.volume = 1.0;     // Full volume
+            
+            // Event listeners
+            currentUtterance.onstart = () => {
+                speakingIndicator.classList.add('active');
+                log('🔊 Speaking response...');
+            };
+            
+            currentUtterance.onend = () => {
+                speakingIndicator.classList.remove('active');
+                log('✅ Finished speaking');
+            };
+            
+            currentUtterance.onerror = (e) => {
+                speakingIndicator.classList.remove('active');
+                log(`⚠️ Speech error: ${e.error}`);
+            };
+            
+            // Speak the text
+            speechSynthesis.speak(currentUtterance);
+        }
+
+        // Ensure voices are loaded
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => {
+                // Voices are now loaded
+            };
         }
 
         function log(message) {
@@ -523,6 +695,10 @@
                         // Display AI response
                         if (data.response) {
                             document.getElementById('responseText').innerHTML = formatMarkdown(data.response);
+                            responseContainer.classList.add('show');
+                            
+                            // Auto-read response if enabled
+                            speakText(data.response);
                             
                             // Play audio if available
                             if (data.audio_url) {
@@ -655,6 +831,10 @@
                     
                     // Display response
                     responseText.innerHTML = formatMarkdown(data.response || data.text || 'Response received');
+                    responseContainer.classList.add('show');
+                    
+                    // Auto-read response if enabled
+                    speakText(data.response || data.text);
                     
                     // Play audio response if available
                     if (data.audio_url) {
@@ -663,8 +843,6 @@
                         audioPlayer.load();
                         audioPlayer.play().catch(e => log(`⚠️ Audio playback error: ${e.message}`));
                     }
-                    
-                    responseContainer.classList.add('show');
                     
                     // Fetch and display video frames if session ID is available
                     if (sessionId) {

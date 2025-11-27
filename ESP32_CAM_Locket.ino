@@ -830,7 +830,8 @@ bool sendToServer(String sessionId) {
 
 // ============================================
 // BASE64 ENCODING
-// ============================================
+// ===============
+=============================
 String encodeBase64(uint8_t* data, size_t length) {
   String encoded = base64::encode(data, length);
   return encoded;
