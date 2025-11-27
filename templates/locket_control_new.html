@@ -586,6 +586,42 @@
             };
         }
 
+        // ----------------------
+        // iOS Manual Playback Support
+        // ----------------------
+        function addManualPlayButton(audioUrl, textFallback) {
+            // Remove old button if it exists (prevents duplicates)
+            const oldBtn = document.getElementById("manualPlayBtn");
+            if (oldBtn) oldBtn.remove();
+
+            // Create button
+            const btn = document.createElement("button");
+            btn.id = "manualPlayBtn";
+            btn.className = "manual-play-btn";
+            btn.innerHTML = "🔊 Read Aloud";
+            btn.style.display = "block";
+            btn.style.margin = "15px auto";
+
+            // Attach behavior
+            btn.onclick = () => {
+                const audio = document.getElementById("audioPlayer");
+
+                // Priority: play server audio, fallback to TTS
+                if (audioUrl) {
+                    audio.src = audioUrl;
+                    audio.load();
+                    audio.play().catch(err => console.log("iOS blocked autoplay until tap:", err));
+                } else if ("speechSynthesis" in window) {
+                    const plain = textFallback.replace(/<[^>]*>/g, " ");
+                    const utterance = new SpeechSynthesisUtterance(plain);
+                    speechSynthesis.speak(utterance);
+                }
+            };
+
+            // Append BELOW the response text (important for iOS rendering)
+            document.getElementById("responseContainer").appendChild(btn);
+        }
+
         function log(message) {
             const div = document.createElement('div');
             div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
@@ -745,33 +781,15 @@
                         
                         // Display AI response
                         if (data.response) {
-                            document.getElementById('responseText').innerHTML = formatMarkdown(data.response);
+                            const responseTextEl = document.getElementById('responseText');
+                            responseTextEl.innerHTML = formatMarkdown(data.response);
                             responseContainer.classList.add('show');
-                            
-                            // Add manual play button for mobile devices (especially iOS) AFTER the text
-                            if (isMobile && data.audio_url) {
-                                const manualPlayBtn = document.createElement('button');
-                                manualPlayBtn.className = 'manual-play-btn';
-                                manualPlayBtn.innerHTML = '🔊';
-                                manualPlayBtn.title = 'Play response aloud';
-                                manualPlayBtn.onclick = () => {
-                                    const audio = document.getElementById('audioPlayer');
-                                    if (audio.paused) {
-                                        audio.play();
-                                        manualPlayBtn.innerHTML = '⏸️';
-                                        manualPlayBtn.title = 'Pause';
-                                    } else {
-                                        audio.pause();
-                                        manualPlayBtn.innerHTML = '🔊';
-                                        manualPlayBtn.title = 'Play response aloud';
-                                    }
-                                };
-                                // Add button AFTER the response text
-                                responseText.appendChild(manualPlayBtn);
-                            }
                             
                             // Auto-read response if enabled
                             speakText(data.response);
+                            
+                            // Add manual play button (essential for iOS)
+                            addManualPlayButton(data.audio_url, data.response);
                             
                             // Play audio if available
                             if (data.audio_url) {
@@ -913,33 +931,15 @@
                     log('✅ Processing complete!');
                     
                     // Display response
-                    responseText.innerHTML = formatMarkdown(data.response || data.text || 'Response received');
+                    const responseTextEl = document.getElementById('responseText');
+                    responseTextEl.innerHTML = formatMarkdown(data.response || data.text || 'Response received');
                     responseContainer.classList.add('show');
-                    
-                    // Add manual play button for mobile devices (especially iOS) AFTER the text
-                    if (isMobile && data.audio_url) {
-                        const manualPlayBtn = document.createElement('button');
-                        manualPlayBtn.className = 'manual-play-btn';
-                        manualPlayBtn.innerHTML = '🔊';
-                        manualPlayBtn.title = 'Play response aloud';
-                        manualPlayBtn.onclick = () => {
-                            const audio = document.getElementById('audioPlayer');
-                            if (audio.paused) {
-                                audio.play();
-                                manualPlayBtn.innerHTML = '⏸️';
-                                manualPlayBtn.title = 'Pause';
-                            } else {
-                                audio.pause();
-                                manualPlayBtn.innerHTML = '🔊';
-                                manualPlayBtn.title = 'Play response aloud';
-                            }
-                        };
-                        // Add button AFTER the response text
-                        responseText.appendChild(manualPlayBtn);
-                    }
                     
                     // Auto-read response if enabled (skip Web Speech on iOS, use server audio)
                     speakText(data.response || data.text);
+                    
+                    // Add manual play button (essential for iOS)
+                    addManualPlayButton(data.audio_url, data.response || data.text);
                     
                     // Play audio response if available
                     if (data.audio_url) {
